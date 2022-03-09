@@ -1,3 +1,4 @@
+use crate::decimal::*;
 use anchor_lang::prelude::*;
 
 #[account]
@@ -13,5 +14,27 @@ pub struct PoolState {
     pub base_token_vault_bump: u8,
     pub quote_token_vault_bump: u8,
     pub lp_token_vault_bump: u8,
+    pub pool_global_state: GlobalState,
 }
 impl PoolState {}
+
+#[derive(Debug, Clone, Default, AnchorSerialize, AnchorDeserialize)]
+pub struct GlobalState {
+    /// contract global state
+    pub liq: Decimal, // liquidity
+    pub rp: Decimal, // sqrt price
+    pub tick: u64,   // current tick
+}
+
+#[derive(Debug, Clone, Default, AnchorSerialize, AnchorDeserialize)]
+pub struct TickState {
+    ///Tick Indexed State
+    liq_net: Decimal, // LiquidityNet
+    liq_gross: Decimal, // LiquidityGross
+}
+
+#[derive(Debug, Clone, Default, AnchorSerialize, AnchorDeserialize)]
+pub struct PositionState {
+    ///Position Indexed State
+    liq: Decimal, // liquidity
+}

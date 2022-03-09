@@ -129,7 +129,7 @@ describe("hmmcl-sandbox", () => {
   });
 
   it("should initialize a liquidity-pool", async () => {
-    await program.rpc.initializePool({
+    await program.rpc.initializePool(new BN(1234), new BN(7), {
       accounts: {
         authority: provider.wallet.publicKey,
         payer: provider.wallet.publicKey,
@@ -178,5 +178,9 @@ describe("hmmcl-sandbox", () => {
     assert.equal(poolStateAccount.poolStateBump, poolStateBump);
     assert.equal(poolStateAccount.baseTokenVaultBump, baseTokenVaultBump);
     assert.equal(poolStateAccount.quoteTokenVaultBump, quoteTokenVaultBump);
+
+    // check globalState rp and tick
+    expect(poolStateAccount.poolGlobalState.rp.value.toNumber()).to.equal(1234);
+    expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(7);
   });
 });
