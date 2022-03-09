@@ -5,7 +5,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
-#[instruction(token_a_vault_bump: u8, token_b_vault_bump: u8, pool_state_bump: u8, lp_token_vault_bump: u8)]
 pub struct InitializePool<'info> {
     pub authority: Signer<'info>,
 
@@ -68,13 +67,7 @@ pub struct InitializePool<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle(
-    ctx: Context<InitializePool>,
-    token_a_vault_bump: u8,
-    token_b_vault_bump: u8,
-    pool_state_bump: u8,
-    lp_token_vault_bump: u8,
-) -> Result<()> {
+pub fn handle(ctx: Context<InitializePool>) -> Result<()> {
     // save authority
     ctx.accounts.pool_state.authority = *ctx.accounts.authority.to_account_info().key;
 
@@ -89,11 +82,11 @@ pub fn handle(
     ctx.accounts.pool_state.quote_token_vault =
         ctx.accounts.quote_token_vault.to_account_info().key();
 
-    // save pool_state_bump, token_a_vault_bump and token_a_vault_bump
-    ctx.accounts.pool_state.pool_state_bump = pool_state_bump;
-    ctx.accounts.pool_state.base_token_vault_bump = token_a_vault_bump;
-    ctx.accounts.pool_state.quote_token_vault_bump = token_b_vault_bump;
-    ctx.accounts.pool_state.lp_token_vault_bump = lp_token_vault_bump;
+    // save bumps from context
+    ctx.accounts.pool_state.pool_state_bump = *ctx.bumps.get("pool_state").unwrap();
+    ctx.accounts.pool_state.base_token_vault_bump = *ctx.bumps.get("base_token_vault").unwrap();
+    ctx.accounts.pool_state.quote_token_vault_bump = *ctx.bumps.get("quote_token_vault").unwrap();
+    ctx.accounts.pool_state.lp_token_vault_bump = *ctx.bumps.get("lp_token_vault").unwrap();
 
     Ok(())
 }

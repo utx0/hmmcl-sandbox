@@ -129,28 +129,22 @@ describe("hmmcl-sandbox", () => {
   });
 
   it("should initialize a liquidity-pool", async () => {
-    await program.rpc.initializePool(
-      baseTokenVaultBump,
-      quoteTokenVaultBump,
-      poolStateBump,
-      lpTokenVaultBump,
-      {
-        accounts: {
-          authority: provider.wallet.publicKey,
-          payer: provider.wallet.publicKey,
-          poolState: poolState,
-          baseTokenMint: btcdMint,
-          quoteTokenMint: usddMint,
-          lpTokenMint: lpTokenMint.publicKey,
-          baseTokenVault,
-          quoteTokenVault,
-          lpTokenVault,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        },
-      }
-    );
+    await program.rpc.initializePool({
+      accounts: {
+        authority: provider.wallet.publicKey,
+        payer: provider.wallet.publicKey,
+        poolState: poolState,
+        baseTokenMint: btcdMint,
+        quoteTokenMint: usddMint,
+        lpTokenMint: lpTokenMint.publicKey,
+        baseTokenVault,
+        quoteTokenVault,
+        lpTokenVault,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      },
+    });
 
     poolStateAccount = await program.account.poolState.fetch(poolState);
 
@@ -179,6 +173,8 @@ describe("hmmcl-sandbox", () => {
       poolStateAccount.lpTokenMint.toString(),
       lpTokenMint.publicKey.toString()
     );
+
+    // check that canonical bumps from client-side and program-side match
     assert.equal(poolStateAccount.poolStateBump, poolStateBump);
     assert.equal(poolStateAccount.baseTokenVaultBump, baseTokenVaultBump);
     assert.equal(poolStateAccount.quoteTokenVaultBump, quoteTokenVaultBump);

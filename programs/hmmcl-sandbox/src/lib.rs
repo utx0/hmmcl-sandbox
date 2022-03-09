@@ -20,17 +20,17 @@ pub mod hmmcl_sandbox {
     /// initialize a new empty pool
     pub fn initialize_pool(
         ctx: Context<InitializePool>,
-        token_a_vault_bump: u8,
-        token_b_vault_bump: u8,
-        pool_state_bump: u8,
-        lp_token_vault_bump: u8,
+        // token_a_vault_bump: u8,
+        // token_b_vault_bump: u8,
+        // pool_state_bump: u8,
+        // lp_token_vault_bump: u8,
     ) -> Result<()> {
         instructions::initialize_pool::handle(
             ctx,
-            token_a_vault_bump,
-            token_b_vault_bump,
-            pool_state_bump,
-            lp_token_vault_bump,
+            // token_a_vault_bump,
+            // token_b_vault_bump,
+            // pool_state_bump,
+            // lp_token_vault_bump,
         )
     }
 }
