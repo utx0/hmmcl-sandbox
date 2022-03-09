@@ -3,6 +3,8 @@ mod instructions;
 pub mod state;
 
 use instructions::initialize_pool::*;
+use instructions::manage_position::*;
+use instructions::manage_tick::*;
 
 use anchor_lang::prelude::*;
 
@@ -25,5 +27,28 @@ pub mod hmmcl_sandbox {
         tick: u64,
     ) -> Result<()> {
         instructions::initialize_pool::handle(ctx, bootstrap_rp, tick)
+    }
+
+    /// initialize a tick, this is trigerred by SetPosition below, called during deposits when needed
+    pub fn initialize_tick(ctx: Context<InitializeTick>, tick: u64) -> Result<()> {
+        instructions::manage_tick::initialize_tick(ctx, tick)
+    }
+    /// update a tick ( this is done by pool - triggered by deposits or swaps)
+    pub fn update_tick(ctx: Context<UpdateTick>, tick: u64) -> Result<()> {
+        instructions::manage_tick::update_tick(ctx, tick)
+    }
+
+    /// user creates a new position
+    pub fn create_position(
+        ctx: Context<CreatePosition>,
+        lower_tick: u64,
+        upper_tick: u64,
+    ) -> Result<()> {
+        instructions::manage_position::create_position(ctx, lower_tick, upper_tick)
+    }
+
+    /// user updates a position ( this will be used by deposits and withdrawals by user)
+    pub fn set_position(ctx: Context<SetPosition>, lower_tick: u64, upper_tick: u64) -> Result<()> {
+        instructions::manage_position::set_position(ctx, lower_tick, upper_tick)
     }
 }
