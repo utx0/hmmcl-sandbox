@@ -1,3 +1,4 @@
+use crate::decimal::Decimal;
 use crate::state::pool_state::PoolState;
 use crate::state::position_state::PositionState;
 use crate::state::tick_state::TickState;
@@ -13,8 +14,8 @@ pub struct CreatePosition<'info> {
         // space = 8 + 2 + 4 + 200 + 1,
         seeds = [
             b"position",
-            user.key().as_ref(),
             pool_state.key().as_ref(),
+            user.key().as_ref(),
             lower_tick.to_le_bytes().as_ref(),
             upper_tick.to_le_bytes().as_ref()
         ],
@@ -47,7 +48,7 @@ pub struct CreatePosition<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(lower_tick: u64, upper_tick: u64)]
+#[instruction(liquidity: u64, lower_tick: u64, upper_tick: u64)]
 pub struct SetPosition<'info> {
     #[account(
         mut,
@@ -65,17 +66,18 @@ pub struct SetPosition<'info> {
 
     #[account(
         mut,
-        seeds = [b"tick", pool_state.key().as_ref(), lower_tick.to_le_bytes().as_ref()], 
+        seeds = [b"tick", pool_state.key().as_ref(), lower_tick.to_le_bytes().as_ref()],
         bump = lower_tick_state.bump,
+        constraint = lower_tick_state.tick == position_state.lower_tick,
     )]
     pub lower_tick_state: Account<'info, TickState>,
     #[account(
         mut,
-        seeds = [b"tick", pool_state.key().as_ref(), upper_tick.to_le_bytes().as_ref()], 
+        seeds = [b"tick", pool_state.key().as_ref(), upper_tick.to_le_bytes().as_ref()],
         bump = upper_tick_state.bump,
+        constraint = upper_tick_state.tick == position_state.upper_tick,
     )]
     pub upper_tick_state: Account<'info, TickState>,
-
     pub pool_state: Account<'info, PoolState>,
 
     //+ pub user_account:  Account<'info, UserAccount>, // for PositionList and TempFees
@@ -90,16 +92,26 @@ pub fn create_position(
     lower_tick: u64,
     upper_tick: u64,
 ) -> Result<()> {
-    msg!("{}", lower_tick);
-    msg!("{}", upper_tick);
-    msg!("{}", ctx.program_id);
+    let position_state = &mut ctx.accounts.position_state;
+
+    position_state.bump = *ctx.bumps.get("position_state").unwrap();
+    position_state.lower_tick = lower_tick;
+    position_state.upper_tick = upper_tick;
+    position_state.authority = *ctx.accounts.pool_state.to_account_info().key;
     Ok(())
 }
 
-pub fn set_position(ctx: Context<SetPosition>, lower_tick: u64, upper_tick: u64) -> Result<()> {
+pub fn set_position(
+    ctx: Context<SetPosition>,
+    liquidity: u64,
+    lower_tick: u64,
+    upper_tick: u64,
+) -> Result<()> {
+    let position_state = &mut ctx.accounts.position_state;
+    position_state.liquidity = Decimal::from_u64(liquidity);
+
     msg!("{}", lower_tick);
     msg!("{}", upper_tick);
-    msg!("{}", ctx.program_id);
     Ok(())
 }
 

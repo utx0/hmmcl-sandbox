@@ -71,7 +71,12 @@ pub mod hmmcl_sandbox {
     }
 
     /// user sets a position ( this will be used by deposits and withdrawals by user)
-    pub fn set_position(ctx: Context<SetPosition>, lower_tick: u64, upper_tick: u64) -> Result<()> {
-        instructions::manage_position::set_position(ctx, lower_tick, upper_tick)
+    pub fn set_position(
+        ctx: Context<SetPosition>,
+        liq: u64,
+        lower_tick: u64,
+        upper_tick: u64,
+    ) -> Result<()> {
+        instructions::manage_position::set_position(ctx, liq, lower_tick, upper_tick)
     }
 }

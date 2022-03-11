@@ -38,6 +38,7 @@ describe("hmmcl-sandbox", () => {
   let poolState: PublicKey;
   let tickStateUpper: PublicKey;
   let tickStateLower: PublicKey;
+  let positionState: PublicKey;
   let baseTokenVault: PublicKey;
   let quoteTokenVault: PublicKey;
   let lpTokenVault: PublicKey;
@@ -48,10 +49,12 @@ describe("hmmcl-sandbox", () => {
   let lpTokenVaultBump: number;
   let tickStateLowerBump: number;
   let tickStateUpperBump: number;
+  let positionStateBump: number;
 
   let poolStateAccount: any;
   let tickStateUpperAccount: any;
   let tickStateLowerAccount: any;
+  let positionStateAccount: any;
 
   it("should create btcdMint (21 million)", async () => {
     [btcdMint, btcdAccount] = await createMintAndVault(
@@ -276,5 +279,76 @@ describe("hmmcl-sandbox", () => {
         poolState.toString()
       );
     }
+  });
+
+  it("should get the PDA for the PositionState", async () => {
+    [positionState, positionStateBump] =
+      await anchor.web3.PublicKey.findProgramAddress(
+        [
+          utf8.encode("position"),
+          poolState.toBuffer(),
+          anchor.getProvider().wallet.publicKey.toBuffer(),
+          bnToLeBytes(lowerTick),
+          bnToLeBytes(upperTick),
+        ],
+        program.programId
+      );
+  });
+
+  it("should create position (user,A,B)", async () => {
+    try {
+      positionStateAccount = await program.account.positionState.fetch(
+        positionState
+      );
+      console.log("PRE: position-state found");
+    } catch (error) {
+      console.log("PRE: position-state not found; creating...");
+      await program.rpc.createPosition(lowerTick, upperTick, {
+        accounts: {
+          positionState: positionState,
+          lowerTickState: tickStateLower,
+          upperTickState: tickStateUpper,
+          poolState: poolState,
+          user: anchor.getProvider().wallet.publicKey,
+          payer: anchor.getProvider().wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+      });
+      positionStateAccount = await program.account.positionState.fetch(
+        positionState
+      );
+      // console.log(positionStateAccount);
+      expect(positionStateAccount.lowerTick.toNumber()).to.equal(
+        lowerTick.toNumber()
+      );
+      expect(positionStateAccount.upperTick.toNumber()).to.equal(
+        upperTick.toNumber()
+      );
+      expect(positionStateAccount.authority.toString()).to.equal(
+        poolState.toString()
+      );
+    }
+  });
+
+  const liqSet = new BN(12345);
+  it("should set position (user,A,B) to liqSet", async () => {
+    console.log("PRE: setting position (A,B) to ", liqSet.toString(), "...");
+    await program.rpc.setPosition(liqSet, lowerTick, upperTick, {
+      accounts: {
+        positionState: positionState,
+        lowerTickState: tickStateLower,
+        upperTickState: tickStateUpper,
+        poolState: poolState,
+        user: anchor.getProvider().wallet.publicKey,
+        payer: anchor.getProvider().wallet.publicKey,
+      },
+    });
+    positionStateAccount = await program.account.positionState.fetch(
+      positionState
+    );
+    // console.log(positionStateAccount);
+    expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+      liqSet.toNumber()
+    );
   });
 });
