@@ -25,23 +25,3 @@ pub struct GlobalState {
     pub rp: Decimal, // sqrt price
     pub tick: u64,   // current tick
 }
-
-// #[derive(Debug, Clone, Default, AnchorSerialize, AnchorDeserialize)]
-#[account]
-#[derive(Default)]
-pub struct TickState {
-    ///Tick Indexed State
-    pub liq_net: Decimal, // LiquidityNet
-    pub liq_gross: Decimal, // LiquidityGross
-    pub tick: u64,
-    pub bump: u8,
-}
-#[account]
-#[derive(Default)]
-pub struct PositionState {
-    ///Position Indexed State
-    pub liq: Decimal, // liquidity
-    pub lower_tick: u64,
-    pub upper_tick: u64,
-    pub bump: u8,
-}

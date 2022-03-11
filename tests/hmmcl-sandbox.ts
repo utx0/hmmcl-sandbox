@@ -15,6 +15,7 @@ import {
   btcdMintAmount,
   usddMintAmount,
   getTokenBalance,
+  bnToLeBytes,
 } from "./utils";
 
 const utf8 = anchor.utils.bytes.utf8;
@@ -35,6 +36,8 @@ describe("hmmcl-sandbox", () => {
   let lpTokenAccount: PublicKey;
 
   let poolState: PublicKey;
+  let tickStateUpper: PublicKey;
+  let tickStateLower: PublicKey;
   let baseTokenVault: PublicKey;
   let quoteTokenVault: PublicKey;
   let lpTokenVault: PublicKey;
@@ -43,7 +46,12 @@ describe("hmmcl-sandbox", () => {
   let baseTokenVaultBump: number;
   let quoteTokenVaultBump: number;
   let lpTokenVaultBump: number;
+  let tickStateLowerBump: number;
+  let tickStateUpperBump: number;
+
   let poolStateAccount: any;
+  let tickStateUpperAccount: any;
+  let tickStateLowerAccount: any;
 
   it("should create btcdMint (21 million)", async () => {
     [btcdMint, btcdAccount] = await createMintAndVault(
@@ -129,6 +137,13 @@ describe("hmmcl-sandbox", () => {
   });
 
   it("should initialize a liquidity-pool", async () => {
+    // try {
+    //   poolStateAccount = await program.account.poolState.fetch(poolState);
+    //   console.log("PRE: pool-state found initialized");
+    // } catch (error) {
+    //   console.log("PRE: pool-state not found so not initialized?");
+    // }
+
     await program.rpc.initializePool(new BN(1234), new BN(7), {
       accounts: {
         authority: provider.wallet.publicKey,
@@ -147,6 +162,12 @@ describe("hmmcl-sandbox", () => {
     });
 
     poolStateAccount = await program.account.poolState.fetch(poolState);
+    // try {
+    //   poolStateAccount = await program.account.poolState.fetch(poolState);
+    //   console.log("POST: pool-state found initialized");
+    // } catch (error) {
+    //   console.log("POST: pool-state not found so not initialized?");
+    // }
 
     assert.equal(
       poolStateAccount.authority.toString(),
@@ -182,5 +203,72 @@ describe("hmmcl-sandbox", () => {
     // check globalState rp and tick
     expect(poolStateAccount.poolGlobalState.rp.value.toNumber()).to.equal(1234);
     expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(7);
+  });
+
+  const lowerTick = new BN(100);
+  const upperTick = new BN(200);
+  it("should get the PDA for the TickStateLower", async () => {
+    [tickStateLower, tickStateLowerBump] =
+      await anchor.web3.PublicKey.findProgramAddress(
+        [utf8.encode("tick"), poolState.toBuffer(), bnToLeBytes(lowerTick)],
+        program.programId
+      );
+  });
+  it("should get the PDA for the TickStateUpper", async () => {
+    [tickStateUpper, tickStateUpperBump] =
+      await anchor.web3.PublicKey.findProgramAddress(
+        [utf8.encode("tick"), poolState.toBuffer(), bnToLeBytes(upperTick)],
+        program.programId
+      );
+  });
+
+  it("should initialize ticks A and B", async () => {
+    try {
+      tickStateLowerAccount = await program.account.tickState.fetch(
+        tickStateLower
+      );
+      console.log("PRE: tick-state lower found initialized");
+    } catch (error) {
+      console.log("PRE: tick-state lower not found; initializing...");
+      await program.rpc.initializeTick(lowerTick, {
+        accounts: {
+          tickState: tickStateLower,
+          poolState: poolState,
+          payer: anchor.getProvider().wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+      });
+      tickStateLowerAccount = await program.account.tickState.fetch(
+        tickStateLower
+      );
+      // console.log(tickStateLowerAccount);
+      expect(tickStateLowerAccount.tick.toNumber()).to.equal(
+        lowerTick.toNumber()
+      );
+    }
+
+    try {
+      tickStateUpperAccount = await program.account.tickState.fetch(
+        tickStateUpper
+      );
+      console.log("PRE: tick-state upper found initialized");
+    } catch (error) {
+      console.log("PRE: tick-state upper not found; initializing...");
+      await program.rpc.initializeTick(upperTick, {
+        accounts: {
+          tickState: tickStateUpper,
+          poolState: poolState,
+          payer: anchor.getProvider().wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+      });
+      tickStateUpperAccount = await program.account.tickState.fetch(
+        tickStateUpper
+      );
+      // console.log(tickStateUpperAccount);
+      expect(tickStateUpperAccount.tick.toNumber()).to.equal(
+        upperTick.toNumber()
+      );
+    }
   });
 });
