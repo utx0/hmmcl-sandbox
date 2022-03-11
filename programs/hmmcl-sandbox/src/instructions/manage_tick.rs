@@ -31,11 +31,14 @@ pub struct UpdateTick<'info> {
         mut,
         seeds = [b"tick", pool_state.key().as_ref(), tick.to_le_bytes().as_ref()], 
         bump = tick_state.bump,
+        has_one = authority,
+        constraint = tick_state.authority == pool_state.key(),
         constraint = tick_state.tick == tick,
     )]
     pub tick_state: Account<'info, TickState>,
     pub pool_state: Account<'info, PoolState>,
     //+ pub tick_list: Account<'info, TickList>,
+    pub authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -45,11 +48,14 @@ pub struct UnsetTick<'info> {
         mut,
         seeds = [b"tick", pool_state.key().as_ref(), tick.to_le_bytes().as_ref()], 
         bump = tick_state.bump,
+        has_one = authority,
+        constraint = tick_state.authority == pool_state.key(),
         constraint = tick_state.tick == tick,
     )]
     pub tick_state: Account<'info, TickState>,
     pub pool_state: Account<'info, PoolState>,
     //+ pub tick_list: Account<'info, TickList>,
+    pub authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -59,9 +65,12 @@ pub struct CrossTick<'info> {
         mut,
         seeds = [b"tick", pool_state.key().as_ref(), provided_tick.to_le_bytes().as_ref()], 
         bump = tick_state.bump,
+        has_one = authority,
+        constraint = tick_state.authority == pool_state.key(),
     )]
     pub tick_state: Account<'info, TickState>,
     pub pool_state: Account<'info, PoolState>,
+    pub authority: Signer<'info>,
 }
 
 pub fn initialize_tick(ctx: Context<InitializeTick>, tick: u64) -> Result<()> {
@@ -69,6 +78,7 @@ pub fn initialize_tick(ctx: Context<InitializeTick>, tick: u64) -> Result<()> {
 
     tick_state.bump = *ctx.bumps.get("tick_state").unwrap();
     tick_state.tick = tick;
+    tick_state.authority = *ctx.accounts.pool_state.to_account_info().key;
 
     Ok(())
 }

@@ -245,6 +245,9 @@ describe("hmmcl-sandbox", () => {
       expect(tickStateLowerAccount.tick.toNumber()).to.equal(
         lowerTick.toNumber()
       );
+      expect(tickStateLowerAccount.authority.toString()).to.equal(
+        poolState.toString()
+      );
     }
 
     try {
@@ -268,6 +271,9 @@ describe("hmmcl-sandbox", () => {
       // console.log(tickStateUpperAccount);
       expect(tickStateUpperAccount.tick.toNumber()).to.equal(
         upperTick.toNumber()
+      );
+      expect(tickStateUpperAccount.authority.toString()).to.equal(
+        poolState.toString()
       );
     }
   });

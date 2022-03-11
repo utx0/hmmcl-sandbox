@@ -11,4 +11,5 @@ pub struct TickState {
     pub liq_gross: Decimal, // LiquidityGross
     pub tick: u64,
     pub bump: u8,
+    pub authority: Pubkey,
 }
