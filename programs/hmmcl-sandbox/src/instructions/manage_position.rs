@@ -6,9 +6,11 @@ use crate::state::tick_state::TickState;
 use crate::errors::ErrorCode;
 use crate::events::InsufficientPositionLiquidity;
 
-// use crate::instruction::UpdateTick;
+// use crate::instructions::manage_tick::UpdateTick;
 
 use anchor_lang::prelude::*;
+
+use super::manage_tick::update_tick_direct;
 
 #[derive(Accounts)]
 #[instruction(lower_tick: u64, upper_tick: u64)]
@@ -93,6 +95,8 @@ pub struct UpdatePosition<'info> {
 
     #[account(mut)]
     pub payer: Signer<'info>,
+    // /// CHECK: only used as a signing PDA
+    // pub authority: UncheckedAccount<'info>,
 }
 
 pub fn create_position(
@@ -117,14 +121,16 @@ pub fn update_position(
     upper_tick: u64,
 ) -> Result<()> {
     let position_state = &mut ctx.accounts.position_state;
+    let lower_tick_state = &mut ctx.accounts.lower_tick_state;
+    let upper_tick_state = &mut ctx.accounts.upper_tick_state;
 
+    // Update position liquidity
     let mut liquidity_delta = Decimal::from_u64(liquidity_abs_value);
     if liquidity_negative {
         liquidity_delta = Decimal::flip_sign(liquidity_delta);
     }
 
     let new_liquidity = position_state.liquidity.add(liquidity_delta).unwrap();
-
     if new_liquidity.negative {
         emit!(InsufficientPositionLiquidity {
             original_liquidity: position_state.liquidity.to_u64(),
@@ -135,13 +141,23 @@ pub fn update_position(
 
     position_state.liquidity = new_liquidity;
 
-    // ctx_lt_acc = UpdateTick {
-    //     tick: lower_tick,
-    //     liq: liquidity,
-    //     upper: false,
+    // let &mut ctx_lt_accounts = &mut UpdateTick {
+    //     tick_state: ctx.accounts.lower_tick_state.clone(),
+    //     pool_state: &ctx.accounts.pool_state.clone(),
     // };
-    msg!("{}", lower_tick);
-    msg!("{}", upper_tick);
+
+    // let update_lower_ctx: Context<UpdateTick> = Context {
+    //     accounts: &mut ctx_lt_accounts,
+    //     program_id: ctx.program_id,
+    //     remaining_accounts: ctx.remaining_accounts,
+    //     bumps: ctx.bumps,
+    // };
+    // update_tick(update_lower_ctx, lower_tick, liquidity_delta, false).unwrap();
+
+    // Update liquidity on respective tick_states
+    update_tick_direct(lower_tick_state, lower_tick, liquidity_delta, false).unwrap();
+    update_tick_direct(upper_tick_state, upper_tick, liquidity_delta, true).unwrap();
+
     Ok(())
 }
 

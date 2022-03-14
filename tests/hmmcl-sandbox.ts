@@ -354,6 +354,19 @@ describe("hmmcl-sandbox", () => {
       liq1.toNumber()
     );
     expect(positionStateAccount.liquidity.negative).to.equal(false);
+
+    tickStateLowerAccount = await program.account.tickState.fetch(
+      tickStateLower
+    );
+    tickStateUpperAccount = await program.account.tickState.fetch(
+      tickStateUpper
+    );
+    // console.log("lower ", tickStateLowerAccount);
+    // console.log("upper ", tickStateUpperAccount);
+    // console.log("lower net", tickStateLowerAccount.liqNet.value.toNumber());
+    // console.log("lower gross", tickStateLowerAccount.liqGross.value.toNumber());
+    // console.log("upper net", tickStateUpperAccount.liqNet.value.toNumber());
+    // console.log("upper gross", tickStateUpperAccount.liqGross.value.toNumber());
   });
 
   it("should update position (user,A,B) to liq1-liq2", async () => {
@@ -375,6 +388,15 @@ describe("hmmcl-sandbox", () => {
       diff.toNumber()
     );
     expect(positionStateAccount.liquidity.negative).to.equal(false);
+
+    tickStateLowerAccount = await program.account.tickState.fetch(
+      tickStateLower
+    );
+    tickStateUpperAccount = await program.account.tickState.fetch(
+      tickStateUpper
+    );
+    // console.log("lower ", tickStateLowerAccount);
+    // console.log("upper ", tickStateUpperAccount);
   });
 
   it("should fails to update (user,A,B) to negative", async () => {

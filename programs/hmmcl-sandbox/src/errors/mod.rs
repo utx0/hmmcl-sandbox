@@ -19,4 +19,10 @@ pub enum ErrorCode {
 
     #[msg("Insufficient Position Liquidity")]
     InsufficientPositionLiquidity,
+
+    #[msg("Tick Gross Liquidity Cannot Be Negative")]
+    NegativeTickGrossLiquidity,
+
+    #[msg("Tick Not Matching Expected")]
+    TickMismatch,
 }

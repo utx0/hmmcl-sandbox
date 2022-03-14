@@ -27,3 +27,13 @@ pub struct InsufficientPositionLiquidity {
     pub original_liquidity: u64,
     pub attempted_removal: u64,
 }
+#[event]
+pub struct NegativeTickGrossLiquidity {
+    pub original_liquidity: u64,
+    pub attempted_removal: u64,
+}
+#[event]
+pub struct TickMismatch {
+    pub expected_tick: u64,
+    pub actual_tick: u64,
+}

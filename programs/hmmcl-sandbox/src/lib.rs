@@ -10,7 +10,7 @@ use instructions::initialize_pool::*;
 use instructions::manage_position::*;
 use instructions::manage_tick::*;
 
-use crate::decimal::Decimal;
+// use crate::decimal::Decimal;
 use anchor_lang::prelude::*;
 
 declare_id!("2bcRNDgkrYrNvP19bX4qQvBZLMEwxh2E4jRNJrmoVN9r");
@@ -39,15 +39,15 @@ pub mod hmmcl_sandbox {
         instructions::manage_tick::initialize_tick(ctx, tick)
     }
 
-    /// update a tick ( this is done by pool - triggered by deposits or swaps)
-    pub fn update_tick(
-        ctx: Context<UpdateTick>,
-        tick: u64,
-        liq: Decimal,
-        upper: bool,
-    ) -> Result<()> {
-        instructions::manage_tick::update_tick(ctx, tick, liq, upper)
-    }
+    // /// update a tick ( this is done by pool - triggered by deposits or swaps)
+    // pub fn update_tick(
+    //     ctx: Context<UpdateTick>,
+    //     tick: u64,
+    //     liq: Decimal,
+    //     upper: bool,
+    // ) -> Result<()> {
+    //     instructions::manage_tick::update_tick(ctx, tick, liq, upper)
+    // }
 
     /// unset tick: flags a tick inactive when no position is referencing it
     pub fn unset_tick(ctx: Context<UnsetTick>, tick: u64) -> Result<()> {
