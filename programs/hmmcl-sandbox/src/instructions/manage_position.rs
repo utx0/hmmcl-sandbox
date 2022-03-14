@@ -117,15 +117,13 @@ pub fn update_position(
     upper_tick: u64,
 ) -> Result<()> {
     let position_state = &mut ctx.accounts.position_state;
-    // position_state.liquidity = Decimal::from_u64(liquidity);
-    let new_liquidity = position_state
-        .liquidity
-        .add(Decimal {
-            value: liquidity_abs_value.into(),
-            scale: 0,
-            negative: liquidity_negative,
-        })
-        .unwrap();
+
+    let mut liquidity_delta = Decimal::from_u64(liquidity_abs_value);
+    if liquidity_negative {
+        liquidity_delta = Decimal::flip_sign(liquidity_delta);
+    }
+
+    let new_liquidity = position_state.liquidity.add(liquidity_delta).unwrap();
 
     if new_liquidity.negative {
         emit!(InsufficientPositionLiquidity {

@@ -48,6 +48,14 @@ impl Decimal {
         }
     }
 
+    /// Create a new [Decimal] from another, with the opposite sign.
+    pub fn flip_sign(original: Decimal) -> Self {
+        Self {
+            negative: !original.negative,
+            ..original
+        }
+    }
+
     /// Create a [Decimal] from an unsigned integer, assumed positive by default.
     pub fn from_u64(integer: u64) -> Self {
         Decimal {
