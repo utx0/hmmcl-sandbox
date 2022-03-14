@@ -1,7 +1,12 @@
-use crate::decimal::Decimal;
+use crate::decimal::{Add, Decimal};
 use crate::state::pool_state::PoolState;
 use crate::state::position_state::PositionState;
 use crate::state::tick_state::TickState;
+
+use crate::errors::ErrorCode;
+use crate::events::InsufficientPositionLiquidity;
+
+// use crate::instruction::UpdateTick;
 
 use anchor_lang::prelude::*;
 
@@ -30,6 +35,7 @@ pub struct CreatePosition<'info> {
         bump = lower_tick_state.bump,
     )]
     pub lower_tick_state: Account<'info, TickState>,
+
     #[account(
         mut,
         seeds = [b"tick", pool_state.key().as_ref(), upper_tick.to_le_bytes().as_ref()], 
@@ -48,8 +54,8 @@ pub struct CreatePosition<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(liquidity: u64, lower_tick: u64, upper_tick: u64)]
-pub struct SetPosition<'info> {
+#[instruction(liquidity: u64, negative: bool, lower_tick: u64, upper_tick: u64)]
+pub struct UpdatePosition<'info> {
     #[account(
         mut,
         seeds = [
@@ -71,6 +77,7 @@ pub struct SetPosition<'info> {
         constraint = lower_tick_state.tick == position_state.lower_tick,
     )]
     pub lower_tick_state: Account<'info, TickState>,
+
     #[account(
         mut,
         seeds = [b"tick", pool_state.key().as_ref(), upper_tick.to_le_bytes().as_ref()],
@@ -78,6 +85,7 @@ pub struct SetPosition<'info> {
         constraint = upper_tick_state.tick == position_state.upper_tick,
     )]
     pub upper_tick_state: Account<'info, TickState>,
+
     pub pool_state: Account<'info, PoolState>,
 
     //+ pub user_account:  Account<'info, UserAccount>, // for PositionList and TempFees
@@ -101,15 +109,39 @@ pub fn create_position(
     Ok(())
 }
 
-pub fn set_position(
-    ctx: Context<SetPosition>,
-    liquidity: u64,
+pub fn update_position(
+    ctx: Context<UpdatePosition>,
+    liquidity_abs_value: u64,
+    liquidity_negative: bool,
     lower_tick: u64,
     upper_tick: u64,
 ) -> Result<()> {
     let position_state = &mut ctx.accounts.position_state;
-    position_state.liquidity = Decimal::from_u64(liquidity);
+    // position_state.liquidity = Decimal::from_u64(liquidity);
+    let new_liquidity = position_state
+        .liquidity
+        .add(Decimal {
+            value: liquidity_abs_value.into(),
+            scale: 0,
+            negative: liquidity_negative,
+        })
+        .unwrap();
 
+    if new_liquidity.negative {
+        emit!(InsufficientPositionLiquidity {
+            original_liquidity: position_state.liquidity.to_u64(),
+            attempted_removal: liquidity_abs_value,
+        });
+        return Err(ErrorCode::InsufficientPositionLiquidity.into());
+    }
+
+    position_state.liquidity = new_liquidity;
+
+    // ctx_lt_acc = UpdateTick {
+    //     tick: lower_tick,
+    //     liq: liquidity,
+    //     upper: false,
+    // };
     msg!("{}", lower_tick);
     msg!("{}", upper_tick);
     Ok(())

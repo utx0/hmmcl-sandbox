@@ -1,4 +1,6 @@
 pub mod decimal;
+pub mod errors;
+pub mod events;
 mod instructions;
 pub mod state;
 
@@ -71,12 +73,19 @@ pub mod hmmcl_sandbox {
     }
 
     /// user sets a position ( this will be used by deposits and withdrawals by user)
-    pub fn set_position(
-        ctx: Context<SetPosition>,
-        liq: u64,
+    pub fn update_position(
+        ctx: Context<UpdatePosition>,
+        liquidity_abs_value: u64,
+        liquidity_negative: bool,
         lower_tick: u64,
         upper_tick: u64,
     ) -> Result<()> {
-        instructions::manage_position::set_position(ctx, liq, lower_tick, upper_tick)
+        instructions::manage_position::update_position(
+            ctx,
+            liquidity_abs_value,
+            liquidity_negative,
+            lower_tick,
+            upper_tick,
+        )
     }
 }

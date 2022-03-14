@@ -330,10 +330,13 @@ describe("hmmcl-sandbox", () => {
     }
   });
 
-  const liqSet = new BN(12345);
-  it("should set position (user,A,B) to liqSet", async () => {
-    console.log("PRE: setting position (A,B) to ", liqSet.toString(), "...");
-    await program.rpc.setPosition(liqSet, lowerTick, upperTick, {
+  const liq1 = new BN(12345);
+  const liq2 = new BN(2345);
+  const diff = new BN(10000);
+  const liq3 = new BN(20000);
+  it("should update position (user,A,B) to liq1", async () => {
+    console.log("PRE: setting position (A,B) to ", liq1.toString(), "...");
+    await program.rpc.updatePosition(liq1, false, lowerTick, upperTick, {
       accounts: {
         positionState: positionState,
         lowerTickState: tickStateLower,
@@ -348,7 +351,56 @@ describe("hmmcl-sandbox", () => {
     );
     // console.log(positionStateAccount);
     expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
-      liqSet.toNumber()
+      liq1.toNumber()
     );
+    expect(positionStateAccount.liquidity.negative).to.equal(false);
+  });
+
+  it("should update position (user,A,B) to liq1-liq2", async () => {
+    console.log("PRE: adding to position (A,B): minus", liq2.toString(), "...");
+    await program.rpc.updatePosition(liq2, true, lowerTick, upperTick, {
+      accounts: {
+        positionState: positionState,
+        lowerTickState: tickStateLower,
+        upperTickState: tickStateUpper,
+        poolState: poolState,
+        user: anchor.getProvider().wallet.publicKey,
+        payer: anchor.getProvider().wallet.publicKey,
+      },
+    });
+    positionStateAccount = await program.account.positionState.fetch(
+      positionState
+    );
+    expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+      diff.toNumber()
+    );
+    expect(positionStateAccount.liquidity.negative).to.equal(false);
+  });
+
+  it("should fails to update (user,A,B) to negative", async () => {
+    console.log("PRE: adding to position (A,B): minus", liq3.toString(), "...");
+    try {
+      await program.rpc.updatePosition(liq3, true, lowerTick, upperTick, {
+        accounts: {
+          positionState: positionState,
+          lowerTickState: tickStateLower,
+          upperTickState: tickStateUpper,
+          poolState: poolState,
+          user: anchor.getProvider().wallet.publicKey,
+          payer: anchor.getProvider().wallet.publicKey,
+        },
+      });
+      assert.ok(false);
+    } catch (err: any) {
+      const errMsg = "Insufficient Position Liquidity";
+      assert.equal(err.toString(), errMsg);
+      positionStateAccount = await program.account.positionState.fetch(
+        positionState
+      );
+      expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+        diff.toNumber()
+      );
+      expect(positionStateAccount.liquidity.negative).to.equal(false);
+    }
   });
 });
