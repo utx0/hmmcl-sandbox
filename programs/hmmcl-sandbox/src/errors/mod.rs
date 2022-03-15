@@ -17,6 +17,12 @@ pub enum ErrorCode {
     #[msg("Position Liquidity Cannot Be Negative")]
     NegativePositionLiquidity,
 
+    #[msg("Deposit Liquidity Cannot Be Negative")]
+    NegativeDepositLiquidity,
+
+    #[msg("Global Liquidity Cannot Be Negative")]
+    NegativeGlobalLiquidity,
+
     #[msg("Insufficient Position Liquidity")]
     InsufficientPositionLiquidity,
 
@@ -25,4 +31,7 @@ pub enum ErrorCode {
 
     #[msg("Tick Not Matching Expected")]
     TickMismatch,
+
+    #[msg("Deposit Amount Exceeded")]
+    DepositAmountExceeded,
 }

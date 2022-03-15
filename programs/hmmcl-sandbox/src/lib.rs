@@ -1,14 +1,15 @@
+pub mod cl_pool;
 pub mod decimal;
 pub mod errors;
 pub mod events;
 mod instructions;
 pub mod state;
 
+use instructions::deposit::*;
 use instructions::initialize_pool::*;
-// use instructions::deposit::*;
-// use instructions::withdraw::*;
 use instructions::manage_position::*;
 use instructions::manage_tick::*;
+// use instructions::withdraw::*;
 
 // use crate::decimal::Decimal;
 use anchor_lang::prelude::*;
@@ -39,30 +40,6 @@ pub mod hmmcl_sandbox {
         instructions::manage_tick::initialize_tick(ctx, tick)
     }
 
-    // /// update a tick ( this is done by pool - triggered by deposits or swaps)
-    // pub fn update_tick(
-    //     ctx: Context<UpdateTick>,
-    //     tick: u64,
-    //     liq: Decimal,
-    //     upper: bool,
-    // ) -> Result<()> {
-    //     instructions::manage_tick::update_tick(ctx, tick, liq, upper)
-    // }
-
-    /// unset tick: flags a tick inactive when no position is referencing it
-    pub fn unset_tick(ctx: Context<UnsetTick>, tick: u64) -> Result<()> {
-        instructions::manage_tick::unset_tick(ctx, tick)
-    }
-
-    /// crossing a tick during the swap process
-    pub fn cross_tick(
-        ctx: Context<CrossTick>,
-        provided_tick: u64,
-        left_to_right: bool,
-    ) -> Result<()> {
-        instructions::manage_tick::cross_tick(ctx, provided_tick, left_to_right)
-    }
-
     /// user creates a new position ( this will be used by deposits and withdrawals by user)
     pub fn create_position(
         ctx: Context<CreatePosition>,
@@ -72,20 +49,22 @@ pub mod hmmcl_sandbox {
         instructions::manage_position::create_position(ctx, lower_tick, upper_tick)
     }
 
-    /// user sets a position ( this will be used by deposits and withdrawals by user)
-    pub fn update_position(
-        ctx: Context<UpdatePosition>,
-        liquidity_abs_value: u64,
-        liquidity_negative: bool,
+    /// user deposits x and y to the pool between lower_tick and upper_tick
+    pub fn deposit(
+        ctx: Context<Deposit>,
         lower_tick: u64,
         upper_tick: u64,
+        current_tick: u64,
+        token_x_amount: u64,
+        token_y_amount: u64,
     ) -> Result<()> {
-        instructions::manage_position::update_position(
+        instructions::deposit::handle(
             ctx,
-            liquidity_abs_value,
-            liquidity_negative,
             lower_tick,
             upper_tick,
+            current_tick,
+            token_x_amount,
+            token_y_amount,
         )
     }
 }

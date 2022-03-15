@@ -22,6 +22,15 @@ pub struct LiquidityRemoved {
     pub lp_tokens_burnt: u64,
 }
 
+// #[event]
+// pub struct NegativeDepositLiquidity;
+
+#[event]
+pub struct NegativeGlobalLiquidity {
+    pub original_liquidity: u64,
+    pub attempted_removal: u64,
+}
+
 #[event]
 pub struct InsufficientPositionLiquidity {
     pub original_liquidity: u64,
@@ -36,4 +45,9 @@ pub struct NegativeTickGrossLiquidity {
 pub struct TickMismatch {
     pub expected_tick: u64,
     pub actual_tick: u64,
+}
+#[event]
+pub struct DepositAmountExceeded {
+    pub deposited: u64,
+    pub attempted_debit: u64,
 }

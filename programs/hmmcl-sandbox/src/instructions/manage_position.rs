@@ -1,3 +1,4 @@
+use crate::constants::POOL_STATE_SEED;
 use crate::decimal::{Add, Decimal};
 use crate::state::pool_state::PoolState;
 use crate::state::position_state::PositionState;
@@ -15,6 +16,13 @@ use super::manage_tick::update_tick_direct;
 #[derive(Accounts)]
 #[instruction(lower_tick: u64, upper_tick: u64)]
 pub struct CreatePosition<'info> {
+    #[account(
+        // mut,
+        seeds = [ POOL_STATE_SEED, pool_state.lp_token_mint.as_ref() ],
+        bump = pool_state.pool_state_bump,
+    )]
+    pub pool_state: Account<'info, PoolState>,
+
     #[account(
         init,
         payer = payer,
@@ -45,8 +53,6 @@ pub struct CreatePosition<'info> {
     )]
     pub upper_tick_state: Account<'info, TickState>,
 
-    pub pool_state: Account<'info, PoolState>,
-
     //+ pub user_account:  Account<'info, UserAccount>, // for PositionList and TempFees
     pub user: Signer<'info>,
 
@@ -58,6 +64,13 @@ pub struct CreatePosition<'info> {
 #[derive(Accounts)]
 #[instruction(liquidity: u64, negative: bool, lower_tick: u64, upper_tick: u64)]
 pub struct UpdatePosition<'info> {
+    #[account(
+        mut,
+        seeds = [ POOL_STATE_SEED, pool_state.lp_token_mint.as_ref() ],
+        bump = pool_state.pool_state_bump,
+    )]
+    pub pool_state: Account<'info, PoolState>,
+
     #[account(
         mut,
         seeds = [
@@ -88,8 +101,6 @@ pub struct UpdatePosition<'info> {
     )]
     pub upper_tick_state: Account<'info, TickState>,
 
-    pub pool_state: Account<'info, PoolState>,
-
     //+ pub user_account:  Account<'info, UserAccount>, // for PositionList and TempFees
     pub user: Signer<'info>,
 
@@ -110,81 +121,36 @@ pub fn create_position(
     position_state.lower_tick = lower_tick;
     position_state.upper_tick = upper_tick;
     position_state.authority = *ctx.accounts.pool_state.to_account_info().key;
+    position_state.liquidity = Decimal::from_u64(0).to_amount();
     Ok(())
 }
 
-pub fn update_position(
-    ctx: Context<UpdatePosition>,
-    liquidity_abs_value: u64,
-    liquidity_negative: bool,
+pub fn update_position_direct<'info>(
+    position_state: &mut Account<'info, PositionState>,
+    lower_tick_state: &mut Account<'info, TickState>,
+    upper_tick_state: &mut Account<'info, TickState>,
+    liquidity_delta: Decimal,
     lower_tick: u64,
     upper_tick: u64,
 ) -> Result<()> {
-    let position_state = &mut ctx.accounts.position_state;
-    let lower_tick_state = &mut ctx.accounts.lower_tick_state;
-    let upper_tick_state = &mut ctx.accounts.upper_tick_state;
-
     // Update position liquidity
-    let mut liquidity_delta = Decimal::from_u64(liquidity_abs_value);
-    if liquidity_negative {
-        liquidity_delta = Decimal::flip_sign(liquidity_delta);
-    }
 
     let new_liquidity = position_state.liquidity.add(liquidity_delta).unwrap();
     if new_liquidity.negative {
         emit!(InsufficientPositionLiquidity {
             original_liquidity: position_state.liquidity.to_u64(),
-            attempted_removal: liquidity_abs_value,
+            attempted_removal: liquidity_delta.to_u64(),
         });
         return Err(ErrorCode::InsufficientPositionLiquidity.into());
     }
 
     position_state.liquidity = new_liquidity;
 
-    // let &mut ctx_lt_accounts = &mut UpdateTick {
-    //     tick_state: ctx.accounts.lower_tick_state.clone(),
-    //     pool_state: &ctx.accounts.pool_state.clone(),
-    // };
-
-    // let update_lower_ctx: Context<UpdateTick> = Context {
-    //     accounts: &mut ctx_lt_accounts,
-    //     program_id: ctx.program_id,
-    //     remaining_accounts: ctx.remaining_accounts,
-    //     bumps: ctx.bumps,
-    // };
-    // update_tick(update_lower_ctx, lower_tick, liquidity_delta, false).unwrap();
-
     // Update liquidity on respective tick_states
     update_tick_direct(lower_tick_state, lower_tick, liquidity_delta, false).unwrap();
     update_tick_direct(upper_tick_state, upper_tick, liquidity_delta, true).unwrap();
 
+    //* global liquidity is updated in deposit handler
+
     Ok(())
 }
-
-//+ INIT_IF_NEEDED version
-// #[derive(Accounts)]
-// #[instruction(lower_tick: u64, upper_tick: u64)]
-// pub struct SetPosition<'info> {
-//     #[account(
-//         init_if_needed,
-//         seeds = [
-//             b"position",
-//             pool_state.key().as_ref(),
-//             user.key().as_ref(),
-//             lower_tick.to_le_bytes().as_ref(),
-//             upper_tick.to_le_bytes().as_ref()
-//         ],
-//         bump,
-//         payer=payer,
-//         // constraint = position_state.upper_tick == upper_tick,
-//         // constraint = position_state.lower_tick == lower_tick,
-//     )]
-//     pub position_state: Account<'info, PositionState>,
-//     pub pool_state: Account<'info, PoolState>,
-//     // pub user_account:  Account<'info, UserAccount>, // for PositionList and TempFees
-//     pub user: Signer<'info>,
-
-//     #[account(mut)]
-//     pub payer: Signer<'info>,
-//     pub system_program: Program<'info, System>,
-// }

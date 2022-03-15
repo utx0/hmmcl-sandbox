@@ -39,13 +39,13 @@ describe("hmmcl-sandbox", () => {
   let tickStateUpper: PublicKey;
   let tickStateLower: PublicKey;
   let positionState: PublicKey;
-  let baseTokenVault: PublicKey;
-  let quoteTokenVault: PublicKey;
+  let tokenXVault: PublicKey;
+  let tokenYVault: PublicKey;
   let lpTokenVault: PublicKey;
 
   let poolStateBump: number;
-  let baseTokenVaultBump: number;
-  let quoteTokenVaultBump: number;
+  let tokenXVaultBump: number;
+  let tokenYVaultBump: number;
   let lpTokenVaultBump: number;
   let tickStateLowerBump: number;
   let tickStateUpperBump: number;
@@ -104,7 +104,7 @@ describe("hmmcl-sandbox", () => {
   });
 
   it("should get the PDA for the TokenAVault", async () => {
-    [baseTokenVault, baseTokenVaultBump] =
+    [tokenXVault, tokenXVaultBump] =
       await anchor.web3.PublicKey.findProgramAddress(
         [
           utf8.encode("token_vault_seed"),
@@ -116,7 +116,7 @@ describe("hmmcl-sandbox", () => {
   });
 
   it("should get the PDA for the TokenBVault", async () => {
-    [quoteTokenVault, quoteTokenVaultBump] =
+    [tokenYVault, tokenYVaultBump] =
       await anchor.web3.PublicKey.findProgramAddress(
         [
           utf8.encode("token_vault_seed"),
@@ -147,16 +147,16 @@ describe("hmmcl-sandbox", () => {
     //   console.log("PRE: pool-state not found so not initialized?");
     // }
 
-    await program.rpc.initializePool(new BN(1234), new BN(7), {
+    await program.rpc.initializePool(new BN(15000), new BN(100), {
       accounts: {
         authority: provider.wallet.publicKey,
         payer: provider.wallet.publicKey,
         poolState: poolState,
-        baseTokenMint: btcdMint,
-        quoteTokenMint: usddMint,
+        tokenXMint: btcdMint,
+        tokenYMint: usddMint,
         lpTokenMint: lpTokenMint.publicKey,
-        baseTokenVault,
-        quoteTokenVault,
+        tokenXVault,
+        tokenYVault,
         lpTokenVault,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -177,22 +177,16 @@ describe("hmmcl-sandbox", () => {
       provider.wallet.publicKey.toString()
     );
     assert.equal(
-      poolStateAccount.baseTokenVault.toString(),
-      baseTokenVault.toString()
+      poolStateAccount.tokenXVault.toString(),
+      tokenXVault.toString()
     );
     assert.equal(
-      poolStateAccount.quoteTokenVault.toString(),
-      quoteTokenVault.toString()
+      poolStateAccount.tokenYVault.toString(),
+      tokenYVault.toString()
     );
 
-    assert.equal(
-      poolStateAccount.baseTokenMint.toString(),
-      btcdMint.toString()
-    );
-    assert.equal(
-      poolStateAccount.quoteTokenMint.toString(),
-      usddMint.toString()
-    );
+    assert.equal(poolStateAccount.tokenXMint.toString(), btcdMint.toString());
+    assert.equal(poolStateAccount.tokenYMint.toString(), usddMint.toString());
     assert.equal(
       poolStateAccount.lpTokenMint.toString(),
       lpTokenMint.publicKey.toString()
@@ -200,16 +194,18 @@ describe("hmmcl-sandbox", () => {
 
     // check that canonical bumps from client-side and program-side match
     assert.equal(poolStateAccount.poolStateBump, poolStateBump);
-    assert.equal(poolStateAccount.baseTokenVaultBump, baseTokenVaultBump);
-    assert.equal(poolStateAccount.quoteTokenVaultBump, quoteTokenVaultBump);
+    assert.equal(poolStateAccount.tokenXVaultBump, tokenXVaultBump);
+    assert.equal(poolStateAccount.tokenYVaultBump, tokenYVaultBump);
 
     // check globalState rp and tick
-    expect(poolStateAccount.poolGlobalState.rp.value.toNumber()).to.equal(1234);
-    expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(7);
+    // expect(poolStateAccount.poolGlobalState.rp.value.toNumber()).to.equal(15000);
+    // expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(100);
   });
 
   const lowerTick = new BN(100);
   const upperTick = new BN(200);
+  const currentTick = new BN(100);
+
   it("should get the PDA for the TickStateLower", async () => {
     [tickStateLower, tickStateLowerBump] =
       await anchor.web3.PublicKey.findProgramAddress(
@@ -235,8 +231,8 @@ describe("hmmcl-sandbox", () => {
       console.log("PRE: tick-state lower not found; initializing...");
       await program.rpc.initializeTick(lowerTick, {
         accounts: {
-          tickState: tickStateLower,
           poolState: poolState,
+          tickState: tickStateLower,
           payer: anchor.getProvider().wallet.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
         },
@@ -262,8 +258,8 @@ describe("hmmcl-sandbox", () => {
       console.log("PRE: tick-state upper not found; initializing...");
       await program.rpc.initializeTick(upperTick, {
         accounts: {
-          tickState: tickStateUpper,
           poolState: poolState,
+          tickState: tickStateUpper,
           payer: anchor.getProvider().wallet.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
         },
@@ -305,10 +301,10 @@ describe("hmmcl-sandbox", () => {
       console.log("PRE: position-state not found; creating...");
       await program.rpc.createPosition(lowerTick, upperTick, {
         accounts: {
+          poolState: poolState,
           positionState: positionState,
           lowerTickState: tickStateLower,
           upperTickState: tickStateUpper,
-          poolState: poolState,
           user: anchor.getProvider().wallet.publicKey,
           payer: anchor.getProvider().wallet.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
@@ -330,18 +326,34 @@ describe("hmmcl-sandbox", () => {
     }
   });
 
-  const liq1 = new BN(12345);
-  const liq2 = new BN(2345);
+  const x = new BN(100);
+  const y = new BN(10000);
   const diff = new BN(10000);
   const liq3 = new BN(20000);
-  it("should update position (user,A,B) to liq1", async () => {
-    console.log("PRE: setting position (A,B) to ", liq1.toString(), "...");
-    await program.rpc.updatePosition(liq1, false, lowerTick, upperTick, {
+
+  it("should make a deposit for user in range (A,B) to liq1", async () => {
+    console.log(
+      "PRE: deposting (A,B) ",
+      x.toString(),
+      " and ",
+      y.toString(),
+      "..."
+    );
+    await program.rpc.deposit(lowerTick, upperTick, currentTick, x, y, {
       accounts: {
+        poolState: poolState,
         positionState: positionState,
         lowerTickState: tickStateLower,
         upperTickState: tickStateUpper,
-        poolState: poolState,
+        currentTickState: tickStateLower,
+        lpTokenMint: lpTokenMint.publicKey,
+        userTokenX: btcdAccount,
+        userTokenY: usddAccount,
+        tokenXVault,
+        tokenYVault,
+        lpTokenVault,
+        lpTokenTo: lpTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
         user: anchor.getProvider().wallet.publicKey,
         payer: anchor.getProvider().wallet.publicKey,
       },
@@ -351,7 +363,7 @@ describe("hmmcl-sandbox", () => {
     );
     // console.log(positionStateAccount);
     expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
-      liq1.toNumber()
+      x.toNumber()
     );
     expect(positionStateAccount.liquidity.negative).to.equal(false);
 
@@ -368,61 +380,99 @@ describe("hmmcl-sandbox", () => {
     // console.log("upper net", tickStateUpperAccount.liqNet.value.toNumber());
     // console.log("upper gross", tickStateUpperAccount.liqGross.value.toNumber());
   });
+  // const liq1 = new BN(12345);
+  // const liq2 = new BN(2345);
+  // const diff = new BN(10000);
+  // const liq3 = new BN(20000);
+  // it("should update position (user,A,B) to liq1", async () => {
+  //   console.log("PRE: setting position (A,B) to ", liq1.toString(), "...");
+  //   await program.rpc.updatePosition(liq1, false, lowerTick, upperTick, {
+  //     accounts: {
+  //       poolState: poolState,
+  //       positionState: positionState,
+  //       lowerTickState: tickStateLower,
+  //       upperTickState: tickStateUpper,
+  //       user: anchor.getProvider().wallet.publicKey,
+  //       payer: anchor.getProvider().wallet.publicKey,
+  //     },
+  //   });
+  //   positionStateAccount = await program.account.positionState.fetch(
+  //     positionState
+  //   );
+  //   // console.log(positionStateAccount);
+  //   expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+  //     liq1.toNumber()
+  //   );
+  //   expect(positionStateAccount.liquidity.negative).to.equal(false);
 
-  it("should update position (user,A,B) to liq1-liq2", async () => {
-    console.log("PRE: adding to position (A,B): minus", liq2.toString(), "...");
-    await program.rpc.updatePosition(liq2, true, lowerTick, upperTick, {
-      accounts: {
-        positionState: positionState,
-        lowerTickState: tickStateLower,
-        upperTickState: tickStateUpper,
-        poolState: poolState,
-        user: anchor.getProvider().wallet.publicKey,
-        payer: anchor.getProvider().wallet.publicKey,
-      },
-    });
-    positionStateAccount = await program.account.positionState.fetch(
-      positionState
-    );
-    expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
-      diff.toNumber()
-    );
-    expect(positionStateAccount.liquidity.negative).to.equal(false);
+  //   tickStateLowerAccount = await program.account.tickState.fetch(
+  //     tickStateLower
+  //   );
+  //   tickStateUpperAccount = await program.account.tickState.fetch(
+  //     tickStateUpper
+  //   );
+  //   // console.log("lower ", tickStateLowerAccount);
+  //   // console.log("upper ", tickStateUpperAccount);
+  //   // console.log("lower net", tickStateLowerAccount.liqNet.value.toNumber());
+  //   // console.log("lower gross", tickStateLowerAccount.liqGross.value.toNumber());
+  //   // console.log("upper net", tickStateUpperAccount.liqNet.value.toNumber());
+  //   // console.log("upper gross", tickStateUpperAccount.liqGross.value.toNumber());
+  // });
 
-    tickStateLowerAccount = await program.account.tickState.fetch(
-      tickStateLower
-    );
-    tickStateUpperAccount = await program.account.tickState.fetch(
-      tickStateUpper
-    );
-    // console.log("lower ", tickStateLowerAccount);
-    // console.log("upper ", tickStateUpperAccount);
-  });
+  // it("should update position (user,A,B) to liq1-liq2", async () => {
+  //   console.log("PRE: adding to position (A,B): minus", liq2.toString(), "...");
+  //   await program.rpc.updatePosition(liq2, true, lowerTick, upperTick, {
+  //     accounts: {
+  //       poolState: poolState,
+  //       positionState: positionState,
+  //       lowerTickState: tickStateLower,
+  //       upperTickState: tickStateUpper,
+  //       user: anchor.getProvider().wallet.publicKey,
+  //       payer: anchor.getProvider().wallet.publicKey,
+  //     },
+  //   });
+  //   positionStateAccount = await program.account.positionState.fetch(
+  //     positionState
+  //   );
+  //   expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+  //     diff.toNumber()
+  //   );
+  //   expect(positionStateAccount.liquidity.negative).to.equal(false);
 
-  it("should fails to update (user,A,B) to negative", async () => {
-    console.log("PRE: adding to position (A,B): minus", liq3.toString(), "...");
-    try {
-      await program.rpc.updatePosition(liq3, true, lowerTick, upperTick, {
-        accounts: {
-          positionState: positionState,
-          lowerTickState: tickStateLower,
-          upperTickState: tickStateUpper,
-          poolState: poolState,
-          user: anchor.getProvider().wallet.publicKey,
-          payer: anchor.getProvider().wallet.publicKey,
-        },
-      });
-      assert.ok(false);
-    } catch (err: any) {
-      const errMsg = "Insufficient Position Liquidity";
-      assert.equal(err.toString(), errMsg);
-      positionStateAccount = await program.account.positionState.fetch(
-        positionState
-      );
-      expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
-        diff.toNumber()
-      );
-      expect(positionStateAccount.liquidity.negative).to.equal(false);
-    }
-  });
+  //   tickStateLowerAccount = await program.account.tickState.fetch(
+  //     tickStateLower
+  //   );
+  //   tickStateUpperAccount = await program.account.tickState.fetch(
+  //     tickStateUpper
+  //   );
+  //   // console.log("lower ", tickStateLowerAccount);
+  //   // console.log("upper ", tickStateUpperAccount);
+  // });
+
+  // it("should fails to update (user,A,B) to negative", async () => {
+  //   console.log("PRE: adding to position (A,B): minus", liq3.toString(), "...");
+  //   try {
+  //     await program.rpc.updatePosition(liq3, true, lowerTick, upperTick, {
+  //       accounts: {
+  //         poolState: poolState,
+  //         positionState: positionState,
+  //         lowerTickState: tickStateLower,
+  //         upperTickState: tickStateUpper,
+  //         user: anchor.getProvider().wallet.publicKey,
+  //         payer: anchor.getProvider().wallet.publicKey,
+  //       },
+  //     });
+  //     assert.ok(false);
+  //   } catch (err: any) {
+  //     const errMsg = "Insufficient Position Liquidity";
+  //     assert.equal(err.toString(), errMsg);
+  //     positionStateAccount = await program.account.positionState.fetch(
+  //       positionState
+  //     );
+  //     expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+  //       diff.toNumber()
+  //     );
+  //     expect(positionStateAccount.liquidity.negative).to.equal(false);
+  //   }
+  // });
 });
