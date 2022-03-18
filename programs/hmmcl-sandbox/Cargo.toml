@@ -21,3 +21,6 @@ anchor-lang = "0.22.1"
 anchor-spl = "0.22.1"
 ndarray = "0.15.4"
 thiserror = "1.0.30"
+
+[dev-dependencies]
+proptest = { version = "1.0.0" }

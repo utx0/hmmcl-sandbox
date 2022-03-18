@@ -6,7 +6,32 @@ pub trait PoolMath {
     }
 
     fn tick_to_rp(tick: u128) -> Decimal {
-        Self::tick_base().pow(tick as u128).to_amount()
+        Self::tick_base().pow(tick as u128).sqrt().unwrap()
+    }
+
+    fn rp_to_tick(rp: Decimal, left_to_right: bool) -> u64 {
+        let base = Self::tick_base().sqrt().unwrap();
+        match left_to_right {
+            true => rp.ln().unwrap().div_up(base.ln().unwrap()).to_u64(),
+            false => rp.ln().unwrap().div(base.ln().unwrap()).to_u64(),
+        }
+    }
+
+    fn rp_to_tick_loop(rp: Decimal, left_to_right: bool, start: u128) -> u64 {
+        let m = Self::tick_base().sqrt().unwrap();
+        let mut rez = m.pow(start);
+        let mut x = start as u64;
+        let result = loop {
+            rez = rez.mul(m);
+            if rez.gte(rp).unwrap() {
+                match left_to_right {
+                    true => break x + 1,
+                    false => break x,
+                }
+            }
+            x = x + 1;
+        };
+        result
     }
 
     fn liq_x_only(x: Decimal, rpa: Decimal, rpb: Decimal) -> Decimal {
@@ -301,5 +326,34 @@ pub trait PoolMath {
             panic!("rp_new_from_l_dy : should always be positive");
         }
         rez.to_amount()
+    }
+}
+
+#[cfg(test)]
+mod test_super {
+    use super::*;
+    use crate::decimal::*;
+
+    pub struct Pool;
+    impl PoolMath for Pool {}
+
+    #[test]
+    fn test_tick_base() {
+        // let tb = Pool::tick_base();
+        let a = Decimal::from_u128(1234567).to_amount();
+        let b = Decimal::from_u64(1234567).to_scale(12);
+
+        // let rez = a.div(b);
+        // let rez = Pool::tick_to_rp(76012);
+        // let rez = Pool::rp_to_tick(a, false);
+        // let rez = Pool::rp_to_tick(a, true);
+
+        // println!("rez: {:#?}", rez);
+        println!("a string: {:#?}", a.to_string());
+        println!("b string: {:#?}", b.to_string());
+        // println!("rez to_u64: {:#?}", rez.to_u64());
+        // println!("rez to_amount: {:#?}", rez.to_amount().to_string());
+        // println!("rez to_scale 0: {:#?}", rez.to_scale(0).to_string());
+        // println!("rez to_int : {:#?}", rez.to_account_value());
     }
 }

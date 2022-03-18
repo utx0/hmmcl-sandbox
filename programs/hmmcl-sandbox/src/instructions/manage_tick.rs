@@ -40,8 +40,9 @@ pub fn initialize_tick(ctx: Context<InitializeTick>, tick: u64) -> Result<()> {
     tick_state.bump = *ctx.bumps.get("tick_state").unwrap();
     tick_state.tick = tick;
     tick_state.authority = *ctx.accounts.pool_state.to_account_info().key;
-    tick_state.liq_net = Decimal::from_u64(0).to_amount();
-    tick_state.liq_gross = Decimal::from_u64(0).to_amount();
+    tick_state.liq_net = 0;
+    tick_state.liq_net_neg = 0;
+    tick_state.liq_gross = 0;
 
     Ok(())
 }
@@ -61,21 +62,28 @@ pub fn update_tick_direct<'info>(
         return Err(ErrorCode::TickMismatch.into());
     }
 
+    let mut ts_liq_net = Decimal::from_account(tick_state.liq_net, tick_state.liq_net_neg);
+
     let applied_net_liquidity = match upper {
         false => liquidity_delta,
         true => Decimal::flip_sign(liquidity_delta),
     };
-    tick_state.liq_net = tick_state.liq_net.add(applied_net_liquidity).unwrap();
+    ts_liq_net = ts_liq_net.add(applied_net_liquidity).unwrap();
 
-    let new_gross_liquidity = tick_state.liq_gross.add(liquidity_delta).unwrap();
+    tick_state.liq_net = ts_liq_net.to_account_value();
+    tick_state.liq_net_neg = ts_liq_net.to_account_sign();
+
+    let ts_liq_gross = Decimal::from_account(tick_state.liq_gross, 0);
+
+    let new_gross_liquidity = ts_liq_gross.add(liquidity_delta).unwrap();
     if new_gross_liquidity.negative {
         emit!(NegativeTickGrossLiquidity {
-            original_liquidity: tick_state.liq_gross.to_u64(),
-            attempted_removal: liquidity_delta.to_u64(),
+            original_liquidity: ts_liq_gross.to_int(),
+            attempted_removal: liquidity_delta.to_int(),
         });
         return Err(ErrorCode::NegativeTickGrossLiquidity.into());
     }
-    tick_state.liq_gross = new_gross_liquidity;
+    tick_state.liq_gross = new_gross_liquidity.to_account_value();
 
     //TODO : unset tick if liq_gross becomes zero
 

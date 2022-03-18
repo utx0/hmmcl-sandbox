@@ -38,6 +38,7 @@ describe("hmmcl-sandbox", () => {
   let poolState: PublicKey;
   let tickStateUpper: PublicKey;
   let tickStateLower: PublicKey;
+  let tickStateCurrent: PublicKey;
   let positionState: PublicKey;
   let tokenXVault: PublicKey;
   let tokenYVault: PublicKey;
@@ -49,11 +50,13 @@ describe("hmmcl-sandbox", () => {
   let lpTokenVaultBump: number;
   let tickStateLowerBump: number;
   let tickStateUpperBump: number;
+  let tickStateCurrentBump: number;
   let positionStateBump: number;
 
   let poolStateAccount: any;
   let tickStateUpperAccount: any;
   let tickStateLowerAccount: any;
+  let tickStateCurrentAccount: any;
   let positionStateAccount: any;
 
   it("should create btcdMint (21 million)", async () => {
@@ -139,6 +142,13 @@ describe("hmmcl-sandbox", () => {
       );
   });
 
+  const lowerTick = new BN(71955); // corres rP = sqrt(1333)
+  const upperTick = new BN(80067); // corres rP = sqrt(4000)
+  const currentTick = new BN(76012); // corres rP = sqrt(2000)
+  const x = new BN(2);
+  const y = new BN(4000);
+  // const diff = new BN(10000);
+  // const liq3 = new BN(20000);
   it("should initialize a liquidity-pool", async () => {
     // try {
     //   poolStateAccount = await program.account.poolState.fetch(poolState);
@@ -147,7 +157,7 @@ describe("hmmcl-sandbox", () => {
     //   console.log("PRE: pool-state not found so not initialized?");
     // }
 
-    await program.rpc.initializePool(new BN(15000), new BN(100), {
+    await program.rpc.initializePool(new BN(15000), currentTick, {
       accounts: {
         authority: provider.wallet.publicKey,
         payer: provider.wallet.publicKey,
@@ -202,10 +212,6 @@ describe("hmmcl-sandbox", () => {
     // expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(100);
   });
 
-  const lowerTick = new BN(100);
-  const upperTick = new BN(200);
-  const currentTick = new BN(100);
-
   it("should get the PDA for the TickStateLower", async () => {
     [tickStateLower, tickStateLowerBump] =
       await anchor.web3.PublicKey.findProgramAddress(
@@ -217,6 +223,13 @@ describe("hmmcl-sandbox", () => {
     [tickStateUpper, tickStateUpperBump] =
       await anchor.web3.PublicKey.findProgramAddress(
         [utf8.encode("tick"), poolState.toBuffer(), bnToLeBytes(upperTick)],
+        program.programId
+      );
+  });
+  it("should get the PDA for the TickStateCurrent", async () => {
+    [tickStateCurrent, tickStateCurrentBump] =
+      await anchor.web3.PublicKey.findProgramAddress(
+        [utf8.encode("tick"), poolState.toBuffer(), bnToLeBytes(currentTick)],
         program.programId
       );
   });
@@ -277,6 +290,35 @@ describe("hmmcl-sandbox", () => {
     }
   });
 
+  it("should initialize tick current ", async () => {
+    try {
+      tickStateCurrentAccount = await program.account.tickState.fetch(
+        tickStateCurrent
+      );
+      console.log("PRE: tick-state current found initialized");
+    } catch (error) {
+      console.log("PRE: tick-state current not found; initializing...");
+      await program.rpc.initializeTick(currentTick, {
+        accounts: {
+          poolState: poolState,
+          tickState: tickStateCurrent,
+          payer: anchor.getProvider().wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+      });
+      tickStateCurrentAccount = await program.account.tickState.fetch(
+        tickStateCurrent
+      );
+      // console.log(tickStateCurrentAccount);
+      expect(tickStateCurrentAccount.tick.toNumber()).to.equal(
+        currentTick.toNumber()
+      );
+      expect(tickStateCurrentAccount.authority.toString()).to.equal(
+        poolState.toString()
+      );
+    }
+  });
+
   it("should get the PDA for the PositionState", async () => {
     [positionState, positionStateBump] =
       await anchor.web3.PublicKey.findProgramAddress(
@@ -326,11 +368,6 @@ describe("hmmcl-sandbox", () => {
     }
   });
 
-  const x = new BN(100);
-  const y = new BN(10000);
-  const diff = new BN(10000);
-  const liq3 = new BN(20000);
-
   it("should make a deposit for user in range (A,B) to liq1", async () => {
     console.log(
       "PRE: deposting (A,B) ",
@@ -345,7 +382,7 @@ describe("hmmcl-sandbox", () => {
         positionState: positionState,
         lowerTickState: tickStateLower,
         upperTickState: tickStateUpper,
-        currentTickState: tickStateLower,
+        currentTickState: tickStateCurrent,
         lpTokenMint: lpTokenMint.publicKey,
         userTokenX: btcdAccount,
         userTokenY: usddAccount,
@@ -358,28 +395,57 @@ describe("hmmcl-sandbox", () => {
         payer: anchor.getProvider().wallet.publicKey,
       },
     });
+
+    poolStateAccount = await program.account.poolState.fetch(poolState);
     positionStateAccount = await program.account.positionState.fetch(
       positionState
     );
-    // console.log(positionStateAccount);
-    expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
-      x.toNumber()
-    );
-    expect(positionStateAccount.liquidity.negative).to.equal(false);
-
     tickStateLowerAccount = await program.account.tickState.fetch(
       tickStateLower
     );
     tickStateUpperAccount = await program.account.tickState.fetch(
       tickStateUpper
     );
-    // console.log("lower ", tickStateLowerAccount);
-    // console.log("upper ", tickStateUpperAccount);
-    // console.log("lower net", tickStateLowerAccount.liqNet.value.toNumber());
-    // console.log("lower gross", tickStateLowerAccount.liqGross.value.toNumber());
-    // console.log("upper net", tickStateUpperAccount.liqNet.value.toNumber());
-    // console.log("upper gross", tickStateUpperAccount.liqGross.value.toNumber());
+    tickStateCurrentAccount = await program.account.tickState.fetch(
+      tickStateCurrent
+    );
+
+    console.log(
+      "pool tick: ",
+      poolStateAccount.poolGlobalState.tick.toNumber()
+    );
+    console.log(
+      "pool rp: ",
+      poolStateAccount.poolGlobalState.rootPrice.toNumber()
+    );
+    console.log(
+      "pool liq: ",
+      poolStateAccount.poolGlobalState.liquidity.toNumber()
+    );
+
+    console.log("position liq: ", positionStateAccount.liquidity.toNumber());
+    console.log("position lower: ", positionStateAccount.lowerTick.toNumber());
+    console.log("position upper: ", positionStateAccount.upperTick.toNumber());
+
+    console.log("lower net", tickStateLowerAccount.liqNet.toNumber());
+    console.log("lower net neg", tickStateLowerAccount.liqNetNeg.toString());
+    console.log("lower gross", tickStateLowerAccount.liqGross.toNumber());
+    console.log("upper net", tickStateUpperAccount.liqNet.toNumber());
+    console.log("upper net neg", tickStateUpperAccount.liqNetNeg.toString());
+    console.log("upper gross", tickStateUpperAccount.liqGross.toNumber());
+    console.log("current net", tickStateCurrentAccount.liqNet.toNumber());
+    console.log(
+      "current net neg",
+      tickStateCurrentAccount.liqNetNeg.toString()
+    );
+    console.log("current gross", tickStateCurrentAccount.liqGross.toNumber());
+
+    // expect(positionStateAccount.liquidity.negative).to.equal(false);
+    // expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+    //   x.toNumber()
+    // );
   });
+
   // const liq1 = new BN(12345);
   // const liq2 = new BN(2345);
   // const diff = new BN(10000);

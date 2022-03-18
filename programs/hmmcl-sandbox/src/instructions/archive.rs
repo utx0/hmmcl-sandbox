@@ -43,8 +43,8 @@
 // let new_gross_liquidity = tick_state.liq_gross.add(liquidity_delta).unwrap();
 // if new_gross_liquidity.negative {
 //     emit!(NegativeTickGrossLiquidity {
-//         original_liquidity: tick_state.liq_gross.to_u64(),
-//         attempted_removal: liquidity_delta.to_u64(),
+//         original_liquidity: tick_state.liq_gross.to_int(),
+//         attempted_removal: liquidity_delta.to_int(),
 //     });
 //     return Err(ErrorCode::NegativeTickGrossLiquidity.into());
 // }
@@ -230,7 +230,7 @@
 //     let new_liquidity = position_state.liquidity.add(liquidity_delta).unwrap();
 //     if new_liquidity.negative {
 //         emit!(InsufficientPositionLiquidity {
-//             original_liquidity: position_state.liquidity.to_u64(),
+//             original_liquidity: position_state.liquidity.to_int(),
 //             attempted_removal: liquidity_abs_value,
 //         });
 //         return Err(ErrorCode::InsufficientPositionLiquidity.into());

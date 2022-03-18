@@ -121,7 +121,7 @@ pub fn create_position(
     position_state.lower_tick = lower_tick;
     position_state.upper_tick = upper_tick;
     position_state.authority = *ctx.accounts.pool_state.to_account_info().key;
-    position_state.liquidity = Decimal::from_u64(0).to_amount();
+    position_state.liquidity = 0;
     Ok(())
 }
 
@@ -135,16 +135,18 @@ pub fn update_position_direct<'info>(
 ) -> Result<()> {
     // Update position liquidity
 
-    let new_liquidity = position_state.liquidity.add(liquidity_delta).unwrap();
+    let ps_liquidity = Decimal::from_account(position_state.liquidity, 0);
+
+    let new_liquidity = ps_liquidity.add(liquidity_delta).unwrap();
     if new_liquidity.negative {
         emit!(InsufficientPositionLiquidity {
-            original_liquidity: position_state.liquidity.to_u64(),
-            attempted_removal: liquidity_delta.to_u64(),
+            original_liquidity: ps_liquidity.to_int(),
+            attempted_removal: liquidity_delta.to_int(),
         });
         return Err(ErrorCode::InsufficientPositionLiquidity.into());
     }
 
-    position_state.liquidity = new_liquidity;
+    position_state.liquidity = new_liquidity.to_account_value();
 
     // Update liquidity on respective tick_states
     update_tick_direct(lower_tick_state, lower_tick, liquidity_delta, false).unwrap();

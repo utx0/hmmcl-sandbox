@@ -217,17 +217,19 @@ pub fn handle(
 
     // update global state's liquidity if current tick in within position's range
     let global_state = &mut ctx.accounts.pool_state.pool_global_state;
+    let gs_liquidity = Decimal::from_account(global_state.liquidity, 0);
+
     if current_tick >= lower_tick && current_tick < upper_tick {
-        let new_global_liquidity = global_state.liquidity.add(liquidity_delta).unwrap();
+        let new_global_liquidity = gs_liquidity.add(liquidity_delta).unwrap();
         // this check may be redundant but just in case
         if new_global_liquidity.negative {
             emit!(NegativeGlobalLiquidity {
-                original_liquidity: global_state.liquidity.to_u64(),
-                attempted_removal: liquidity_delta.to_u64()
+                original_liquidity: gs_liquidity.to_int(),
+                attempted_removal: liquidity_delta.to_int()
             });
             return Err(ErrorCode::NegativeGlobalLiquidity.into());
         }
-        global_state.liquidity = new_global_liquidity;
+        global_state.liquidity = new_global_liquidity.to_account_value();
     }
 
     // offset fee amounts from deposit amounts: this will be the amount debited from user
@@ -236,16 +238,16 @@ pub fn handle(
 
     if x_debited.gt(x).unwrap() {
         emit!(DepositAmountExceeded {
-            deposited: x.to_u64(),
-            attempted_debit: x_debited.to_u64(),
+            deposited: x.to_int(),
+            attempted_debit: x_debited.to_int(),
         });
         return Err(ErrorCode::DepositAmountExceeded.into());
     }
 
     if y_debited.gt(y).unwrap() {
         emit!(DepositAmountExceeded {
-            deposited: y.to_u64(),
-            attempted_debit: y_debited.to_u64(),
+            deposited: y.to_int(),
+            attempted_debit: y_debited.to_int(),
         });
         return Err(ErrorCode::DepositAmountExceeded.into());
     }
@@ -263,25 +265,25 @@ pub fn handle(
         ctx.accounts
             .mint_lp_tokens_to_user_account()
             .with_signer(&signer),
-        liquidity_delta.to_u64(),
+        liquidity_delta.to_int(),
     )?;
 
     // transfer to vault
     token::transfer(
         ctx.accounts.transfer_user_token_x_to_vault(),
-        x_debited.to_u64(),
+        x_debited.to_int(),
     )?;
 
     // transfer to vault
     token::transfer(
         ctx.accounts.transfer_user_token_y_to_vault(),
-        y_debited.to_u64(),
+        y_debited.to_int(),
     )?;
 
     emit!(LiquidityAdded {
-        tokens_x_transferred: x_debited.to_u64(),
-        tokens_y_transferred: y_debited.to_u64(),
-        lp_tokens_minted: liquidity_delta.to_u64(),
+        tokens_x_transferred: x_debited.to_int(),
+        tokens_y_transferred: y_debited.to_int(),
+        lp_tokens_minted: liquidity_delta.to_int(),
     });
 
     Ok(())

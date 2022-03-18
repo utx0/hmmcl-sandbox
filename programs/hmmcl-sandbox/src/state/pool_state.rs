@@ -1,4 +1,4 @@
-use crate::decimal::*;
+// use crate::decimal::*;
 use anchor_lang::prelude::*;
 
 #[account]
@@ -21,7 +21,7 @@ impl PoolState {}
 #[derive(Debug, Clone, Default, AnchorSerialize, AnchorDeserialize)]
 pub struct GlobalState {
     /// contract global state
-    pub liquidity: Decimal, // liquidity
-    pub root_price: Decimal, // sqrt price
-    pub tick: u64,           // current tick
+    pub liquidity: u128, // liquidity
+    pub root_price: u128, // sqrt price
+    pub tick: u64,        // current tick
 }

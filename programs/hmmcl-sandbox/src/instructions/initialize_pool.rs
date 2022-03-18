@@ -1,6 +1,6 @@
 use crate::cl_pool::cl_math::PoolMath;
+use crate::constants::*;
 use crate::state::pool_state::*;
-use crate::{constants::*, decimal::Decimal};
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
@@ -71,7 +71,7 @@ pub struct InitializePool<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handle(ctx: Context<InitializePool>, bootstrap_rp: u64, tick: u64) -> Result<()> {
+pub fn handle(ctx: Context<InitializePool>, _bootstrap_rp: u64, tick: u64) -> Result<()> {
     // save authority
     ctx.accounts.pool_state.authority = *ctx.accounts.authority.to_account_info().key;
 
@@ -93,9 +93,10 @@ pub fn handle(ctx: Context<InitializePool>, bootstrap_rp: u64, tick: u64) -> Res
     // setup GlobalState
     let global_state = &mut ctx.accounts.pool_state.pool_global_state;
     // global_state.root_price = Decimal::from_u64(bootstrap_rp).to_amount();
-    global_state.root_price = Pool::tick_to_rp(tick as u128);
+    // global_state.root_price = Decimal::from_u64(tick).to_amount();
+    global_state.root_price = Pool::tick_to_rp(tick as u128).to_account_value();
     global_state.tick = tick;
-    global_state.liquidity = Decimal::from_u64(0).to_amount();
+    global_state.liquidity = 0;
 
     Ok(())
 }
