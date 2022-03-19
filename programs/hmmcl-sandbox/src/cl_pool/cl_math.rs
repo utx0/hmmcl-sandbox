@@ -1,26 +1,30 @@
 use crate::decimal::*;
 
 pub trait PoolMath {
+    // * All Decimal inputs are assumed to be 'computable' scale on arrival
+    // * And all outputs 'computable' scale
+    // * All tick are internally handled as u128 and returned as such
     fn tick_base() -> Decimal {
-        Decimal::new(10001_u128, 4_u8, false).to_amount()
+        Decimal::new(10001_u128, 4_u8, false).to_computable()
     }
 
     fn tick_to_rp(tick: u128) -> Decimal {
         Self::tick_base().pow(tick as u128).sqrt().unwrap()
     }
 
-    fn rp_to_tick(rp: Decimal, left_to_right: bool) -> u64 {
+    fn rp_to_tick(rp: Decimal, left_to_right: bool) -> u128 {
         let base = Self::tick_base().sqrt().unwrap();
-        match left_to_right {
-            true => rp.ln().unwrap().div_up(base.ln().unwrap()).to_u64(),
-            false => rp.ln().unwrap().div(base.ln().unwrap()).to_u64(),
-        }
+        let tick_decimal = match left_to_right {
+            true => rp.ln().unwrap().div_up(base.ln().unwrap()),
+            false => rp.ln().unwrap().div(base.ln().unwrap()),
+        };
+        tick_decimal.to_zero_scale_u128()
     }
 
-    fn rp_to_tick_loop(rp: Decimal, left_to_right: bool, start: u128) -> u64 {
+    fn rp_to_tick_loop(rp: Decimal, left_to_right: bool, start: u128) -> u128 {
         let m = Self::tick_base().sqrt().unwrap();
         let mut rez = m.pow(start);
-        let mut x = start as u64;
+        let mut x = start;
         let result = loop {
             rez = rez.mul(m);
             if rez.gte(rp).unwrap() {
@@ -44,7 +48,7 @@ pub trait PoolMath {
         if rpb_minus_rpa.negative {
             panic!("liq_x_only:rpb_minus_rpa should always be positive");
         }
-        x.mul(rpa).mul(rpb).div(rpb_minus_rpa).to_amount()
+        x.mul(rpa).mul(rpb).div(rpb_minus_rpa)
     }
 
     fn liq_y_only(y: Decimal, rpa: Decimal, rpb: Decimal) -> Decimal {
@@ -53,7 +57,7 @@ pub trait PoolMath {
         //    y : token y real reserves;  rPa,rPb : range lower (upper) bound in root price
         // y / (rpb - rpa)
         let rpb_minus_rpa = rpb.sub(rpa).unwrap();
-        y.div(rpb_minus_rpa).to_amount()
+        y.div(rpb_minus_rpa)
     }
 
     fn liq_from_x_y_rp_rng(
@@ -110,7 +114,7 @@ pub trait PoolMath {
         let rp_mul_rpb = rp.mul(rpb);
 
         // l * (rpb - rp) / (rp * rpb)
-        l.mul(rpb_minus_rp).div(rp_mul_rpb).to_amount()
+        l.mul(rpb_minus_rp).div(rp_mul_rpb)
     }
 
     fn x_from_l_tick_rng(l: Decimal, t: u128, ta: u128, tb: u128) -> Decimal {
@@ -138,7 +142,7 @@ pub trait PoolMath {
         if rp_minus_rpa.negative {
             panic!("liq_x_only:rpb_minus_rpa should always be positive");
         }
-        l.mul(rp_minus_rpa).to_amount()
+        l.mul(rp_minus_rpa)
     }
 
     fn y_from_l_tick_rng(l: Decimal, t: u128, ta: u128, tb: u128) -> Decimal {
@@ -157,7 +161,7 @@ pub trait PoolMath {
         if rez.negative {
             panic!("rpa_from_l_rp_y : rp - (y/l) should always be positive");
         }
-        rez.to_amount()
+        rez
     }
 
     fn rpb_from_l_rp_x(l: Decimal, rp: Decimal, x: Decimal) -> Decimal {
@@ -170,7 +174,7 @@ pub trait PoolMath {
         if rez.negative {
             panic!("rpb_from_l_rp_x : (l - rp * x) should always be positive");
         }
-        rez.to_amount()
+        rez
     }
 
     fn rpa_from_x_y_rp_rpb(x: Decimal, y: Decimal, rp: Decimal, rpb: Decimal) -> Decimal {
@@ -187,7 +191,7 @@ pub trait PoolMath {
                 "rpa_from_x_y_rp_rpb : y / (rpb * x) + rp - y / (rp * x) should always be positive"
             );
         }
-        rez.to_amount()
+        rez
     }
 
     fn rpb_from_x_y_rp_rpa(x: Decimal, y: Decimal, rp: Decimal, rpa: Decimal) -> Decimal {
@@ -204,7 +208,7 @@ pub trait PoolMath {
         if rp_minus_rpa.negative {
             panic!("rpb_from_x_y_rp_rpa: denom should always be positive");
         }
-        numer.div(denom).to_amount()
+        numer.div(denom)
     }
 
     fn dx_from_l_drp(l: Decimal, rp_old: Decimal, rp_new: Decimal) -> Decimal {
@@ -215,13 +219,13 @@ pub trait PoolMath {
         let diff = rp_old.sub(rp_new).unwrap();
         let old_mul_new = rp_old.mul(rp_new);
 
-        l.mul(diff).div(old_mul_new).to_amount()
+        l.mul(diff).div(old_mul_new)
     }
 
     fn dy_from_l_drp(l: Decimal, rp_old: Decimal, rp_new: Decimal) -> Decimal {
         // Change of reserve Y based of change of price
         // l * (rp_new - rp_old)
-        rp_new.sub(rp_old).unwrap().mul(l).to_amount()
+        rp_new.sub(rp_old).unwrap().mul(l)
     }
 
     fn dx_from_l_drp_hmm(
@@ -232,12 +236,12 @@ pub trait PoolMath {
         rp_oracle: Decimal,
     ) -> Decimal {
         // chg of reserve x based of chg of price with hmm adj
-        let one = Decimal::from_u64(1).to_amount();
+        let one = Decimal::from_u64(1).to_computable();
         if c.lt(one).unwrap() {
             panic!("cannot handle hmm with C<1");
         }
         if rp_old.eq(rp_new).unwrap() {
-            return Decimal::from_u64(0).to_amount();
+            return Decimal::from_u64(0).to_computable();
         }
         if c.eq(one).unwrap() {
             // return l / rp_oracle * (rp_old / rp_new).ln();
@@ -245,7 +249,7 @@ pub trait PoolMath {
             let ln_rp_new = rp_new.ln().unwrap();
             let log_of_ratio = ln_rp_old.sub(ln_rp_new).unwrap();
 
-            return l.div(rp_oracle).mul(log_of_ratio).to_amount();
+            return l.div(rp_oracle).mul(log_of_ratio);
         } else {
             // let omc = 1.0 - c; // one minus c
             // let cmo = -omc; // c minus one
@@ -258,7 +262,7 @@ pub trait PoolMath {
 
             let diff = rp_new_pow_cmo.sub(rp_old_pow_cmo).unwrap();
 
-            return l.div(rp_oracle_pow_c).mul(diff).div(omc).to_amount();
+            return l.div(rp_oracle_pow_c).mul(diff).div(omc);
         }
     }
 
@@ -270,12 +274,12 @@ pub trait PoolMath {
         rp_oracle: Decimal,
     ) -> Decimal {
         // chg of reserve y based of chg of price with hmm adj
-        let one = Decimal::from_u64(1).to_amount();
+        let one = Decimal::from_u64(1).to_computable();
         if c.lt(one).unwrap() {
             panic!("cannot handle hmm with C<1");
         }
         if rp_old.eq(rp_new).unwrap() {
-            return Decimal::from_u64(0).to_amount();
+            return Decimal::from_u64(0).to_computable();
         }
         if c.eq(one).unwrap() {
             // l * rp_oracle * (rp_old / rp_new).ln()
@@ -283,7 +287,7 @@ pub trait PoolMath {
             let ln_rp_new = rp_new.ln().unwrap();
             let log_of_ratio = ln_rp_old.sub(ln_rp_new).unwrap();
 
-            return l.mul(rp_oracle).mul(log_of_ratio).to_amount();
+            return l.mul(rp_oracle).mul(log_of_ratio);
         } else {
             // let omc = 1.0 - c; // one minus c
             // l * rp_oracle.powf(c) * (1.0/rp_new.powf(cmo) - 1.0/ rp_old.powf(cmo)) / omc
@@ -299,7 +303,7 @@ pub trait PoolMath {
 
             let diff = inv_rp_new_pow_cmo.sub(inv_rp_old_pow_cmo).unwrap();
 
-            return l.mul(rp_oracle_pow_c).mul(diff).div(omc).to_amount();
+            return l.mul(rp_oracle_pow_c).mul(diff).div(omc);
         }
     }
 
@@ -315,7 +319,7 @@ pub trait PoolMath {
         if rez.negative {
             panic!("rp_new_from_l_dx : should always be positive");
         }
-        rez.to_amount()
+        rez
     }
 
     fn rp_new_from_l_dy(l: Decimal, rp_old: Decimal, dy: Decimal) -> Decimal {
@@ -325,14 +329,14 @@ pub trait PoolMath {
         if rez.negative {
             panic!("rp_new_from_l_dy : should always be positive");
         }
-        rez.to_amount()
+        rez
     }
 }
 
 #[cfg(test)]
 mod test_super {
     use super::*;
-    use crate::decimal::*;
+    use crate::decimal::Decimal;
 
     pub struct Pool;
     impl PoolMath for Pool {}

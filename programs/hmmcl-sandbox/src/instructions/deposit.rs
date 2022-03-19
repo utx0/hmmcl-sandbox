@@ -175,8 +175,8 @@ pub fn handle(
     token_x_amount: u64,
     token_y_amount: u64,
 ) -> Result<()> {
-    let x = Decimal::from_u64(token_x_amount).to_amount();
-    let y = Decimal::from_u64(token_y_amount).to_amount();
+    let x = Decimal::from_u64(token_x_amount).to_computable();
+    let y = Decimal::from_u64(token_y_amount).to_computable();
 
     let rpa_used = Pool::tick_to_rp(lower_tick as u128);
     let rpb_used = Pool::tick_to_rp(upper_tick as u128);
@@ -200,7 +200,7 @@ pub fn handle(
 
     let y_in = Pool::y_from_l_rp_rng(liquidity_delta, rp_used, rpa_used, rpb_used);
 
-    let zero = Decimal::from_u64(0).to_amount();
+    let zero = Decimal::from_u64(0).to_computable();
     // TODO calculate fees user temp_fees in UserAccount
     let (fees_x, fees_y, adj_x, adj_y) = (zero, zero, zero, zero);
 
@@ -224,8 +224,8 @@ pub fn handle(
         // this check may be redundant but just in case
         if new_global_liquidity.negative {
             emit!(NegativeGlobalLiquidity {
-                original_liquidity: gs_liquidity.to_int(),
-                attempted_removal: liquidity_delta.to_int()
+                original_liquidity: gs_liquidity.to_zero_scale_u64(),
+                attempted_removal: liquidity_delta.to_zero_scale_u64()
             });
             return Err(ErrorCode::NegativeGlobalLiquidity.into());
         }
@@ -238,16 +238,16 @@ pub fn handle(
 
     if x_debited.gt(x).unwrap() {
         emit!(DepositAmountExceeded {
-            deposited: x.to_int(),
-            attempted_debit: x_debited.to_int(),
+            deposited: x.to_zero_scale_u64(),
+            attempted_debit: x_debited.to_zero_scale_u64(),
         });
         return Err(ErrorCode::DepositAmountExceeded.into());
     }
 
     if y_debited.gt(y).unwrap() {
         emit!(DepositAmountExceeded {
-            deposited: y.to_int(),
-            attempted_debit: y_debited.to_int(),
+            deposited: y.to_zero_scale_u64(),
+            attempted_debit: y_debited.to_zero_scale_u64(),
         });
         return Err(ErrorCode::DepositAmountExceeded.into());
     }
@@ -265,25 +265,25 @@ pub fn handle(
         ctx.accounts
             .mint_lp_tokens_to_user_account()
             .with_signer(&signer),
-        liquidity_delta.to_int(),
+        liquidity_delta.to_zero_scale_u64(),
     )?;
 
     // transfer to vault
     token::transfer(
         ctx.accounts.transfer_user_token_x_to_vault(),
-        x_debited.to_int(),
+        x_debited.to_zero_scale_u64(),
     )?;
 
     // transfer to vault
     token::transfer(
         ctx.accounts.transfer_user_token_y_to_vault(),
-        y_debited.to_int(),
+        y_debited.to_zero_scale_u64(),
     )?;
 
     emit!(LiquidityAdded {
-        tokens_x_transferred: x_debited.to_int(),
-        tokens_y_transferred: y_debited.to_int(),
-        lp_tokens_minted: liquidity_delta.to_int(),
+        tokens_x_transferred: x_debited.to_zero_scale_u64(),
+        tokens_y_transferred: y_debited.to_zero_scale_u64(),
+        lp_tokens_minted: liquidity_delta.to_zero_scale_u64(),
     });
 
     Ok(())

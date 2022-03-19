@@ -140,8 +140,8 @@ pub fn update_position_direct<'info>(
     let new_liquidity = ps_liquidity.add(liquidity_delta).unwrap();
     if new_liquidity.negative {
         emit!(InsufficientPositionLiquidity {
-            original_liquidity: ps_liquidity.to_int(),
-            attempted_removal: liquidity_delta.to_int(),
+            original_liquidity: ps_liquidity.to_zero_scale_u64(),
+            attempted_removal: liquidity_delta.to_zero_scale_u64(),
         });
         return Err(ErrorCode::InsufficientPositionLiquidity.into());
     }

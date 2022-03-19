@@ -78,8 +78,8 @@ pub fn update_tick_direct<'info>(
     let new_gross_liquidity = ts_liq_gross.add(liquidity_delta).unwrap();
     if new_gross_liquidity.negative {
         emit!(NegativeTickGrossLiquidity {
-            original_liquidity: ts_liq_gross.to_int(),
-            attempted_removal: liquidity_delta.to_int(),
+            original_liquidity: ts_liq_gross.to_zero_scale_u64(),
+            attempted_removal: liquidity_delta.to_zero_scale_u64(),
         });
         return Err(ErrorCode::NegativeTickGrossLiquidity.into());
     }

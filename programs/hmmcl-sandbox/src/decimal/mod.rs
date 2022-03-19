@@ -6,8 +6,9 @@ use std::iter::repeat;
 use thiserror::Error;
 
 /// Default precision for a [Decimal] expressed as an amount.
-pub const AMOUNT_SCALE: u8 = 12;
+pub const AMOUNT_SCALE: u8 = 6;
 // TODO: add more constants for default precision on other types e.g. fees, percentages
+pub const COMPUTE_PRECISION: u8 = 12;
 
 /// Error codes related to [Decimal].
 #[derive(Error, Debug)]
@@ -95,12 +96,12 @@ impl Decimal {
         self.to_scale(AMOUNT_SCALE)
     }
 
-    /// Create a [Decimal] from an unsigned integer and sign as u8
+    /// Create a [Decimal] from an unsigned integer 128 and sign as u8
     /// ( 0 is positive, anything else negative).
     pub fn from_account(value: u128, sign: u8) -> Self {
         Decimal {
             value: value.into(),
-            scale: AMOUNT_SCALE,
+            scale: COMPUTE_PRECISION,
             negative: match sign == 0 {
                 true => false,
                 false => true,
@@ -108,12 +109,13 @@ impl Decimal {
         }
     }
 
-    /// Convert a [Decimal] value to an unsigned integer .
+    /// Convert a [Decimal] to a u128 representing the 'value' of a decimal
+    /// at computable scale, to save in accounts
     pub fn to_account_value(self) -> u128 {
-        self.to_scale(AMOUNT_SCALE).value as u128
+        self.to_scale(COMPUTE_PRECISION).value as u128
     }
 
-    /// Convert a [Decimal] sign to u8 .
+    /// Convert a [Decimal] sign to u8 to save in accounts.
     pub fn to_account_sign(self) -> u8 {
         match self.negative {
             true => 1,
@@ -121,9 +123,19 @@ impl Decimal {
         }
     }
 
-    /// Convert a [Decimal] to an unsigned integer .
-    pub fn to_int(self) -> u64 {
+    /// Scale a [Decimal] to an [Decimal] with a scale fit for internal computations .
+    pub fn to_computable(self) -> Decimal {
+        self.to_scale(COMPUTE_PRECISION)
+    }
+
+    /// Convert a [Decimal] to an unsigned integer 64 fit for inputs and outputs (BigNumber) .
+    pub fn to_zero_scale_u64(self) -> u64 {
         self.to_scale(0).value as u64
+    }
+
+    /// Convert a [Decimal] to an unsigned integer 128 fit for tick outputs .
+    pub fn to_zero_scale_u128(self) -> u128 {
+        self.to_scale(0).value as u128
     }
 
     /// Modify the scale (precision) of a [Decimal] to a different scale.
