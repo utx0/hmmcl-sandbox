@@ -65,7 +65,10 @@ pub fn create_position(
     position_state.bump = *ctx.bumps.get("position_state").unwrap();
     position_state.lower_tick = lower_tick;
     position_state.upper_tick = upper_tick;
-    position_state.liquidity = 0;
+
+    let (zero, scale, _) = Decimal::from_u64(0).to_account();
+    position_state.liquidity = zero;
+    position_state.liq_scale = scale;
     Ok(())
 }
 
@@ -79,7 +82,7 @@ pub fn update_position<'info>(
 ) -> Result<()> {
     // Update position liquidity
 
-    let ps_liquidity = Decimal::from_account(position_state.liquidity, 0);
+    let ps_liquidity = Decimal::from_account(position_state.liquidity, position_state.liq_scale, 0);
 
     let new_liquidity = ps_liquidity.add(liquidity_delta).unwrap();
     if new_liquidity.negative {
@@ -90,7 +93,9 @@ pub fn update_position<'info>(
         return Err(ErrorCode::InsufficientPositionLiquidity.into());
     }
 
-    position_state.liquidity = new_liquidity.to_account_value();
+    let (pos_val, pos_scale, _) = new_liquidity.to_account();
+    position_state.liquidity = pos_val;
+    position_state.liq_scale = pos_scale;
 
     // Update liquidity on respective tick_states
     update_tick(lower_tick_state, lower_tick, liquidity_delta, false).unwrap();

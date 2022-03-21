@@ -19,8 +19,10 @@ impl PoolState {}
 
 #[derive(Debug, Clone, Default, AnchorSerialize, AnchorDeserialize)]
 pub struct GlobalState {
-    /// contract global state
+    /// contract global state. global liquidity cannot be negative
     pub liquidity: u128, // liquidity
+    pub liq_scale: u8,    // decimal scale for liquidity
     pub root_price: u128, // sqrt price
+    pub rp_scale: u8,     // decimal scale for root-price
     pub tick: u64,        // current tick
 }

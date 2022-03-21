@@ -5,10 +5,12 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(Default)]
 pub struct TickState {
-    ///Tick Indexed State
-    pub liq_net: u128, // LiquidityNet
-    pub liq_net_neg: u8, // LiquidityNet
-    pub liq_gross: u128, // LiquidityGross
+    ///Tick Indexed State. gross liquidity cannot be negative
+    pub liq_net: u128, // LiquidityNet value
+    pub liq_net_scale: u8,   // LiquidityNet scale
+    pub liq_net_neg: u8,     // LiquidityNet sign
+    pub liq_gross: u128,     // LiquidityGross value
+    pub liq_gross_scale: u8, // LiquidityGross scale
     pub tick: u64,
     pub bump: u8,
 }

@@ -1,5 +1,6 @@
 use crate::cl_pool::cl_math::PoolMath;
 use crate::constants::*;
+use crate::decimal::Decimal;
 use crate::state::pool_state::*;
 
 use anchor_lang::prelude::*;
@@ -93,9 +94,14 @@ pub fn handle(ctx: Context<InitializePool>, _bootstrap_rp: u64, tick: u64) -> Re
     // setup GlobalState
     let global_state = &mut ctx.accounts.pool_state.pool_global_state;
 
-    global_state.root_price = Pool::tick_to_rp(tick as u128).to_account_value();
+    let (rp_val, rp_scale, _) = Pool::tick_to_rp(tick as u128).to_account();
+    global_state.root_price = rp_val;
+    global_state.rp_scale = rp_scale;
+
+    let (zero, liq_scale, _) = Decimal::from_u64(0).to_account();
+    global_state.liquidity = zero;
+    global_state.liq_scale = liq_scale;
     global_state.tick = tick;
-    global_state.liquidity = 0;
 
     Ok(())
 }

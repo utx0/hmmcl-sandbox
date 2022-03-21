@@ -97,10 +97,10 @@ impl Decimal {
 
     /// Create a [Decimal] from an unsigned integer 128 and sign as u8
     /// ( 0 is positive, anything else negative).
-    pub fn from_account(value: u128, sign: u8) -> Self {
+    pub fn from_account(value: u128, scale: u8, sign: u8) -> Self {
         Decimal {
             value: value.into(),
-            scale: COMPUTE_PRECISION,
+            scale,
             negative: match sign == 0 {
                 true => false,
                 false => true,
@@ -109,17 +109,17 @@ impl Decimal {
     }
 
     /// Convert a [Decimal] to a u128 representing the 'value' of a decimal
-    /// at computable scale, to save in accounts
-    pub fn to_account_value(self) -> u128 {
-        self.to_scale(COMPUTE_PRECISION).value as u128
-    }
-
-    /// Convert a [Decimal] sign to u8 to save in accounts.
-    pub fn to_account_sign(self) -> u8 {
-        match self.negative {
-            true => 1,
-            false => 0,
-        }
+    /// at computable scale,the scale and tthe sign to save in accounts
+    pub fn to_account(self) -> (u128, u8, u8) {
+        let to_save = self.to_scale(COMPUTE_PRECISION);
+        (
+            to_save.value,
+            COMPUTE_PRECISION,
+            match to_save.negative {
+                true => 1,
+                false => 0,
+            },
+        )
     }
 
     /// Scale a [Decimal] to an [Decimal] with a scale fit for internal computations .

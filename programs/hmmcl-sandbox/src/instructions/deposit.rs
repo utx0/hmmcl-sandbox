@@ -216,7 +216,7 @@ pub fn handle(
 
     // update global state's liquidity if current tick in within position's range
     let global_state = &mut ctx.accounts.pool_state.pool_global_state;
-    let gs_liquidity = Decimal::from_account(global_state.liquidity, 0);
+    let gs_liquidity = Decimal::from_account(global_state.liquidity, global_state.liq_scale, 0);
 
     if current_tick >= lower_tick && current_tick < upper_tick {
         let new_global_liquidity = gs_liquidity.add(liquidity_delta).unwrap();
@@ -228,7 +228,9 @@ pub fn handle(
             });
             return Err(ErrorCode::NegativeGlobalLiquidity.into());
         }
-        global_state.liquidity = new_global_liquidity.to_account_value();
+        let (gl_val, gl_scale, _) = new_global_liquidity.to_account();
+        global_state.liquidity = gl_val;
+        global_state.liq_scale = gl_scale;
     }
 
     // offset fee amounts from deposit amounts: this will be the amount debited from user
