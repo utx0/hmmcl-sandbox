@@ -1,3 +1,4 @@
+use crate::state::fees::Fee;
 use anchor_lang::prelude::*;
 
 // TickState
@@ -12,5 +13,6 @@ pub struct TickState {
     pub liq_gross: u128,     // LiquidityGross value
     pub liq_gross_scale: u8, // LiquidityGross scale
     pub tick: u64,
+    pub tick_fee: Fee, // tick-level fee (per liquidity unit) --> f0
     pub bump: u8,
 }

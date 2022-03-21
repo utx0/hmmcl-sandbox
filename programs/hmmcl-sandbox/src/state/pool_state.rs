@@ -1,3 +1,4 @@
+use crate::state::fees::Fee;
 use anchor_lang::prelude::*;
 
 #[account]
@@ -25,4 +26,5 @@ pub struct GlobalState {
     pub root_price: u128, // sqrt price
     pub rp_scale: u8,     // decimal scale for root-price
     pub tick: u64,        // current tick
+    pub global_fee: Fee,  // global fee (per liquidity unit) --> fg
 }
