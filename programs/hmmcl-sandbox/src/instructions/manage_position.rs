@@ -1,6 +1,7 @@
 use crate::constants::POOL_STATE_SEED;
 use crate::decimal::{Add, Decimal};
 use crate::instructions::manage_tick::update_tick;
+use crate::state::fees::Fee;
 use crate::state::pool_state::PoolState;
 use crate::state::position_state::PositionState;
 use crate::state::tick_state::TickState;
@@ -79,6 +80,7 @@ pub fn update_position<'info>(
     liquidity_delta: Decimal,
     lower_tick: u64,
     upper_tick: u64,
+    new_fee: Fee,
 ) -> Result<()> {
     // Update position liquidity
 
@@ -96,6 +98,7 @@ pub fn update_position<'info>(
     let (pos_val, pos_scale, _) = new_liquidity.to_account();
     position_state.liquidity = pos_val;
     position_state.liq_scale = pos_scale;
+    position_state.last_collected_fee = new_fee;
 
     // Update liquidity on respective tick_states
     update_tick(lower_tick_state, lower_tick, liquidity_delta, false).unwrap();

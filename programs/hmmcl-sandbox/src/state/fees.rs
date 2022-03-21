@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-#[derive(Debug, Clone, Default, AnchorSerialize, AnchorDeserialize)]
+#[derive(Debug, Clone, Copy, Default, AnchorSerialize, AnchorDeserialize)]
 pub struct Fee {
     /// generic struct for fee handling. fees cannot be negative
     pub fee_scale: u8,

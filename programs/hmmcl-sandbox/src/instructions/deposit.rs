@@ -1,6 +1,7 @@
 use crate::cl_pool::cl_math::PoolMath;
 use crate::constants::*;
 use crate::decimal::*;
+use crate::instructions::manage_fee::compute_latest_fee;
 use crate::instructions::manage_position::update_position;
 use crate::state::pool_state::PoolState;
 use crate::state::position_state::PositionState;
@@ -199,9 +200,20 @@ pub fn handle(
 
     let y_in = Pool::y_from_l_rp_rng(liquidity_delta, rp_used, rpa_used, rpb_used);
 
-    let zero = Decimal::from_u64(0).to_computable();
-    // TODO calculate fees user temp_fees in UserAccount
-    let (fees_x, fees_y, adj_x, adj_y) = (zero, zero, zero, zero);
+    // Deal with fee accounting
+    let old_fee = ctx.accounts.position_state.last_collected_fee;
+    let lwr_fee = ctx.accounts.lower_tick_state.tick_fee;
+    let upr_fee = ctx.accounts.upper_tick_state.tick_fee;
+    let glbl_fee = ctx.accounts.pool_state.pool_global_state.global_fee;
+    let new_fee = compute_latest_fee(
+        lower_tick,
+        upper_tick,
+        current_tick,
+        glbl_fee,
+        lwr_fee,
+        upr_fee,
+        old_fee.fee_scale,
+    );
 
     // update position_state and lower_ & upper_tick_state
     update_position(
@@ -211,6 +223,7 @@ pub fn handle(
         liquidity_delta,
         lower_tick,
         upper_tick,
+        new_fee,
     )
     .unwrap();
 
@@ -234,8 +247,12 @@ pub fn handle(
     }
 
     // offset fee amounts from deposit amounts: this will be the amount debited from user
-    let x_debited = x_in.sub(fees_x).unwrap().sub(adj_x).unwrap();
-    let y_debited = y_in.sub(fees_y).unwrap().sub(adj_y).unwrap();
+    let x_debited = x_in
+        .sub(Decimal::new(new_fee.f_x + new_fee.h_x, new_fee.fee_scale, false).to_scale(x_in.scale))
+        .unwrap();
+    let y_debited = y_in
+        .sub(Decimal::new(new_fee.f_y + new_fee.h_y, new_fee.fee_scale, false).to_scale(y_in.scale))
+        .unwrap();
 
     if x_debited.gt(x).unwrap() {
         emit!(DepositAmountExceeded {
@@ -253,7 +270,7 @@ pub fn handle(
         return Err(ErrorCode::DepositAmountExceeded.into());
     }
 
-    // update state: reserves, fee pot , hmm-adj-fee pot
+    // update reserves and carry out transfers
     let seeds = &[
         POOL_STATE_SEED,
         ctx.accounts.pool_state.lp_token_mint.as_ref(),
