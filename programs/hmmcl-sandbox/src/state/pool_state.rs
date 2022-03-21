@@ -1,4 +1,6 @@
+use crate::constants::{LIQUIDITY_SCALE, ROOT_PRICE_SCALE};
 use crate::state::fees::Fee;
+
 use anchor_lang::prelude::*;
 
 #[account]
@@ -18,7 +20,7 @@ pub struct PoolState {
 }
 impl PoolState {}
 
-#[derive(Debug, Clone, Default, AnchorSerialize, AnchorDeserialize)]
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct GlobalState {
     /// contract global state. global liquidity cannot be negative
     pub liquidity: u128, // liquidity
@@ -27,4 +29,17 @@ pub struct GlobalState {
     pub rp_scale: u8,     // decimal scale for root-price
     pub tick: u64,        // current tick
     pub global_fee: Fee,  // global fee (per liquidity unit) --> fg
+}
+
+impl Default for GlobalState {
+    fn default() -> Self {
+        Self {
+            liquidity: 0,
+            liq_scale: LIQUIDITY_SCALE,
+            root_price: 0,
+            rp_scale: ROOT_PRICE_SCALE,
+            tick: 0,
+            global_fee: Fee::default(),
+        }
+    }
 }

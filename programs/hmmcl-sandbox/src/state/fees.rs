@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
+use crate::constants::FEE_SCALE;
 
-pub const FEE_SCALE: u8 = 12;
+use anchor_lang::prelude::*;
 
 #[derive(Debug, Clone, Copy, AnchorSerialize, AnchorDeserialize)]
 pub struct Fee {

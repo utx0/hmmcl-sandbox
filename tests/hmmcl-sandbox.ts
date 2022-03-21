@@ -257,6 +257,7 @@ describe("hmmcl-sandbox", () => {
       expect(tickStateLowerAccount.tick.toNumber()).to.equal(
         lowerTick.toNumber()
       );
+      expect(tickStateLowerAccount.liqNetScale).to.equal(12);
     }
 
     try {
@@ -281,6 +282,7 @@ describe("hmmcl-sandbox", () => {
       expect(tickStateUpperAccount.tick.toNumber()).to.equal(
         upperTick.toNumber()
       );
+      expect(tickStateUpperAccount.liqGrossScale).to.equal(12);
     }
   });
 
@@ -307,6 +309,7 @@ describe("hmmcl-sandbox", () => {
       expect(tickStateCurrentAccount.tick.toNumber()).to.equal(
         currentTick.toNumber()
       );
+      expect(tickStateCurrentAccount.tickFee.feeScale).to.equal(12);
     }
   });
 
@@ -353,6 +356,8 @@ describe("hmmcl-sandbox", () => {
       expect(positionStateAccount.upperTick.toNumber()).to.equal(
         upperTick.toNumber()
       );
+      expect(positionStateAccount.liqScale).to.equal(12);
+      expect(positionStateAccount.lastCollectedFee.feeScale).to.equal(12);
     }
   });
 

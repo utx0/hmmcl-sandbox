@@ -19,6 +19,9 @@ pub mod constants {
     pub const LP_TOKEN_VAULT_SEED: &[u8] = b"lp_token_vault_seed";
     pub const TOKEN_VAULT_SEED: &[u8] = b"token_vault_seed";
     pub const POOL_STATE_SEED: &[u8] = b"pool_state_seed";
+    pub const FEE_SCALE: u8 = 12;
+    pub const LIQUIDITY_SCALE: u8 = 12;
+    pub const ROOT_PRICE_SCALE: u8 = 12;
 }
 
 #[program]

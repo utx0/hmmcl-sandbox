@@ -1,4 +1,4 @@
-use crate::constants::POOL_STATE_SEED;
+use crate::constants::{FEE_SCALE, LIQUIDITY_SCALE, POOL_STATE_SEED};
 use crate::decimal::{Add, Decimal};
 use crate::state::pool_state::PoolState;
 use crate::state::tick_state::TickState;
@@ -37,14 +37,16 @@ pub fn initialize_tick(ctx: Context<InitializeTick>, tick: u64) -> Result<()> {
     tick_state.bump = *ctx.bumps.get("tick_state").unwrap();
     tick_state.tick = tick;
 
-    let (zero, scale, _) = Decimal::from_u64(0).to_account();
+    tick_state.liq_net_scale = LIQUIDITY_SCALE;
+    tick_state.liq_gross_scale = LIQUIDITY_SCALE;
+    tick_state.tick_fee.fee_scale = FEE_SCALE;
 
-    tick_state.liq_net = zero;
-    tick_state.liq_net_scale = scale;
-    tick_state.liq_net_neg = 0;
-
-    tick_state.liq_gross = zero;
-    tick_state.liq_gross_scale = scale;
+    // let (zero, scale, _) = Decimal::from_u64(0).to_account();
+    // tick_state.liq_net = zero;
+    // tick_state.liq_net_scale = scale;
+    // tick_state.liq_net_neg = 0;
+    // tick_state.liq_gross = zero;
+    // tick_state.liq_gross_scale = scale;
 
     Ok(())
 }
