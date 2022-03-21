@@ -285,3 +285,100 @@
 //     pub payer: Signer<'info>,
 //     pub system_program: Program<'info, System>,
 // }
+
+//+ Typescript archives
+// const liq1 = new BN(12345);
+// const liq2 = new BN(2345);
+// const diff = new BN(10000);
+// const liq3 = new BN(20000);
+// it("should update position (user,A,B) to liq1", async () => {
+//   console.log("PRE: setting position (A,B) to ", liq1.toString(), "...");
+//   await program.rpc.updatePosition(liq1, false, lowerTick, upperTick, {
+//     accounts: {
+//       poolState: poolState,
+//       positionState: positionState,
+//       lowerTickState: tickStateLower,
+//       upperTickState: tickStateUpper,
+//       user: anchor.getProvider().wallet.publicKey,
+//       payer: anchor.getProvider().wallet.publicKey,
+//     },
+//   });
+//   positionStateAccount = await program.account.positionState.fetch(
+//     positionState
+//   );
+//   // console.log(positionStateAccount);
+//   expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+//     liq1.toNumber()
+//   );
+//   expect(positionStateAccount.liquidity.negative).to.equal(false);
+
+//   tickStateLowerAccount = await program.account.tickState.fetch(
+//     tickStateLower
+//   );
+//   tickStateUpperAccount = await program.account.tickState.fetch(
+//     tickStateUpper
+//   );
+//   // console.log("lower ", tickStateLowerAccount);
+//   // console.log("upper ", tickStateUpperAccount);
+//   // console.log("lower net", tickStateLowerAccount.liqNet.value.toNumber());
+//   // console.log("lower gross", tickStateLowerAccount.liqGross.value.toNumber());
+//   // console.log("upper net", tickStateUpperAccount.liqNet.value.toNumber());
+//   // console.log("upper gross", tickStateUpperAccount.liqGross.value.toNumber());
+// });
+
+// it("should update position (user,A,B) to liq1-liq2", async () => {
+//   console.log("PRE: adding to position (A,B): minus", liq2.toString(), "...");
+//   await program.rpc.updatePosition(liq2, true, lowerTick, upperTick, {
+//     accounts: {
+//       poolState: poolState,
+//       positionState: positionState,
+//       lowerTickState: tickStateLower,
+//       upperTickState: tickStateUpper,
+//       user: anchor.getProvider().wallet.publicKey,
+//       payer: anchor.getProvider().wallet.publicKey,
+//     },
+//   });
+//   positionStateAccount = await program.account.positionState.fetch(
+//     positionState
+//   );
+//   expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+//     diff.toNumber()
+//   );
+//   expect(positionStateAccount.liquidity.negative).to.equal(false);
+
+//   tickStateLowerAccount = await program.account.tickState.fetch(
+//     tickStateLower
+//   );
+//   tickStateUpperAccount = await program.account.tickState.fetch(
+//     tickStateUpper
+//   );
+//   // console.log("lower ", tickStateLowerAccount);
+//   // console.log("upper ", tickStateUpperAccount);
+// });
+
+// it("should fails to update (user,A,B) to negative", async () => {
+//   console.log("PRE: adding to position (A,B): minus", liq3.toString(), "...");
+//   try {
+//     await program.rpc.updatePosition(liq3, true, lowerTick, upperTick, {
+//       accounts: {
+//         poolState: poolState,
+//         positionState: positionState,
+//         lowerTickState: tickStateLower,
+//         upperTickState: tickStateUpper,
+//         user: anchor.getProvider().wallet.publicKey,
+//         payer: anchor.getProvider().wallet.publicKey,
+//       },
+//     });
+//     assert.ok(false);
+//   } catch (err: any) {
+//     const errMsg = "Insufficient Position Liquidity";
+//     assert.equal(err.toString(), errMsg);
+//     positionStateAccount = await program.account.positionState.fetch(
+//       positionState
+//     );
+//     expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+//       diff.toNumber()
+//     );
+//     expect(positionStateAccount.liquidity.negative).to.equal(false);
+//   }
+// });

@@ -11,7 +11,6 @@ use instructions::manage_position::*;
 use instructions::manage_tick::*;
 // use instructions::withdraw::*;
 
-// use crate::decimal::Decimal;
 use anchor_lang::prelude::*;
 
 declare_id!("2bcRNDgkrYrNvP19bX4qQvBZLMEwxh2E4jRNJrmoVN9r");

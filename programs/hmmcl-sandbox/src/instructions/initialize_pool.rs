@@ -92,8 +92,7 @@ pub fn handle(ctx: Context<InitializePool>, _bootstrap_rp: u64, tick: u64) -> Re
 
     // setup GlobalState
     let global_state = &mut ctx.accounts.pool_state.pool_global_state;
-    // global_state.root_price = Decimal::from_u64(bootstrap_rp).to_amount();
-    // global_state.root_price = Decimal::from_u64(tick).to_amount();
+
     global_state.root_price = Pool::tick_to_rp(tick as u128).to_account_value();
     global_state.tick = tick;
     global_state.liquidity = 0;

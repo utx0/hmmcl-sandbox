@@ -1,4 +1,3 @@
-// use crate::decimal::*;
 use anchor_lang::prelude::*;
 
 // TickState
@@ -12,5 +11,4 @@ pub struct TickState {
     pub liq_gross: u128, // LiquidityGross
     pub tick: u64,
     pub bump: u8,
-    pub authority: Pubkey,
 }

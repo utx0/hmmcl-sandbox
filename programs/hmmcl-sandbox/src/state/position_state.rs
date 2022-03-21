@@ -1,4 +1,3 @@
-// use crate::decimal::*;
 use anchor_lang::prelude::*;
 
 // PositionState
@@ -11,5 +10,4 @@ pub struct PositionState {
     pub lower_tick: u64,
     pub upper_tick: u64,
     pub bump: u8,
-    pub authority: Pubkey,
 }

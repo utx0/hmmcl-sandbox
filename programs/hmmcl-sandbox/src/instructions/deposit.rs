@@ -1,6 +1,7 @@
 use crate::cl_pool::cl_math::PoolMath;
 use crate::constants::*;
 use crate::decimal::*;
+use crate::instructions::manage_position::update_position;
 use crate::state::pool_state::PoolState;
 use crate::state::position_state::PositionState;
 use crate::state::tick_state::TickState;
@@ -11,8 +12,6 @@ use crate::events::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 use anchor_spl::token::{Mint, MintTo, Token, TokenAccount, Transfer};
-
-use super::manage_position::update_position_direct;
 
 pub struct Pool;
 impl PoolMath for Pool {}
@@ -205,7 +204,7 @@ pub fn handle(
     let (fees_x, fees_y, adj_x, adj_y) = (zero, zero, zero, zero);
 
     // update position_state and lower_ & upper_tick_state
-    update_position_direct(
+    update_position(
         &mut ctx.accounts.position_state,
         &mut ctx.accounts.lower_tick_state,
         &mut ctx.accounts.upper_tick_state,

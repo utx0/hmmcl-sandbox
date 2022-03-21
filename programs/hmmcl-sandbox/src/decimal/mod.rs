@@ -1,4 +1,3 @@
-use anchor_lang::prelude::*;
 use ndarray::{arr2, Array2};
 use std::convert::TryInto;
 use std::fmt;
@@ -23,7 +22,7 @@ pub enum ErrorCode {
 
 /// [Decimal] representation of a number with a value, scale (precision in terms of number of decimal places
 /// and a negative boolean to handle signed arithmetic.
-#[derive(Clone, Copy, PartialEq, Debug, AnchorDeserialize, AnchorSerialize)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Decimal {
     pub value: u128,
     pub scale: u8,

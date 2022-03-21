@@ -1,4 +1,3 @@
-// use crate::decimal::*;
 use anchor_lang::prelude::*;
 
 #[account]
