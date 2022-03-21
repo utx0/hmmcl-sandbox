@@ -361,9 +361,9 @@ describe("hmmcl-sandbox", () => {
     }
   });
 
-  it("should make a deposit for user in range (A,B) to liq1", async () => {
+  it("should make a deposit for user in range (A,B)", async () => {
     console.log(
-      "PRE: deposting (A,B) ",
+      "PRE: depositing in (A,B) ",
       x.toString(),
       " and ",
       y.toString(),
@@ -388,6 +388,94 @@ describe("hmmcl-sandbox", () => {
         payer: anchor.getProvider().wallet.publicKey,
       },
     });
+
+    poolStateAccount = await program.account.poolState.fetch(poolState);
+    positionStateAccount = await program.account.positionState.fetch(
+      positionState
+    );
+    tickStateLowerAccount = await program.account.tickState.fetch(
+      tickStateLower
+    );
+    tickStateUpperAccount = await program.account.tickState.fetch(
+      tickStateUpper
+    );
+    tickStateCurrentAccount = await program.account.tickState.fetch(
+      tickStateCurrent
+    );
+
+    console.log(
+      "pool tick: ",
+      poolStateAccount.poolGlobalState.tick.toNumber()
+    );
+    console.log(
+      "pool rp: ",
+      poolStateAccount.poolGlobalState.rootPrice.toNumber()
+    );
+    console.log(
+      "pool liq: ",
+      poolStateAccount.poolGlobalState.liquidity.toNumber()
+    );
+
+    console.log("position liq: ", positionStateAccount.liquidity.toNumber());
+    console.log("position lower: ", positionStateAccount.lowerTick.toNumber());
+    console.log("position upper: ", positionStateAccount.upperTick.toNumber());
+
+    console.log("lower net", tickStateLowerAccount.liqNet.toNumber());
+    console.log("lower net neg", tickStateLowerAccount.liqNetNeg.toString());
+    console.log("lower gross", tickStateLowerAccount.liqGross.toNumber());
+    console.log("upper net", tickStateUpperAccount.liqNet.toNumber());
+    console.log("upper net neg", tickStateUpperAccount.liqNetNeg.toString());
+    console.log("upper gross", tickStateUpperAccount.liqGross.toNumber());
+    console.log("current net", tickStateCurrentAccount.liqNet.toNumber());
+    console.log(
+      "current net neg",
+      tickStateCurrentAccount.liqNetNeg.toString()
+    );
+    console.log("current gross", tickStateCurrentAccount.liqGross.toNumber());
+
+    // expect(positionStateAccount.liquidity.negative).to.equal(false);
+    // expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
+    //   x.toNumber()
+    // );
+  });
+  // let userLiquidity: BN = await getTokenBalance(
+  //   anchor.getProvider(),
+  //   lpTokenAccount
+  // );
+  const userLiquidity: BN = new BN(400);
+
+  it("should make a withdrawal for user in range (A,B)", async () => {
+    console.log(
+      "PRE: withdrawing from (A,B): ",
+      userLiquidity.toString(),
+      " lp tokens"
+    );
+
+    await program.rpc.withdraw(
+      lowerTick,
+      upperTick,
+      currentTick,
+      userLiquidity,
+      {
+        accounts: {
+          poolState: poolState,
+          positionState: positionState,
+          lowerTickState: tickStateLower,
+          upperTickState: tickStateUpper,
+          currentTickState: tickStateCurrent,
+          lpTokenMint: lpTokenMint.publicKey,
+          userTokenX: btcdAccount,
+          userTokenY: usddAccount,
+          tokenXVault,
+          tokenYVault,
+          lpTokenVault,
+          lpTokenUserAccount: lpTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          user: anchor.getProvider().wallet.publicKey,
+          payer: anchor.getProvider().wallet.publicKey,
+        },
+      }
+    );
 
     poolStateAccount = await program.account.poolState.fetch(poolState);
     positionStateAccount = await program.account.positionState.fetch(

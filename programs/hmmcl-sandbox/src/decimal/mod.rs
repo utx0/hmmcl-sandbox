@@ -58,6 +58,14 @@ impl Decimal {
         }
     }
 
+    /// Create a new [Decimal] as the absolute value of another.
+    pub fn abs(self) -> Self {
+        Self {
+            negative: false,
+            ..self
+        }
+    }
+
     /// Create a [Decimal] from an unsigned integer, assumed positive by default.
     pub fn from_u64(integer: u64) -> Self {
         Decimal {

@@ -9,7 +9,7 @@ use instructions::deposit::*;
 use instructions::initialize_pool::*;
 use instructions::manage_position::*;
 use instructions::manage_tick::*;
-// use instructions::withdraw::*;
+use instructions::withdraw::*;
 
 use anchor_lang::prelude::*;
 
@@ -68,5 +68,16 @@ pub mod hmmcl_sandbox {
             token_x_amount,
             token_y_amount,
         )
+    }
+
+    /// user withdraws x and y from the pool between lower_tick and upper_tick by removing liqudity
+    pub fn withdraw(
+        ctx: Context<Withdraw>,
+        lower_tick: u64,
+        upper_tick: u64,
+        current_tick: u64,
+        lp_token_amount: u64,
+    ) -> Result<()> {
+        instructions::withdraw::handle(ctx, lower_tick, upper_tick, current_tick, lp_token_amount)
     }
 }
