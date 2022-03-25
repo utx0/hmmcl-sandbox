@@ -8,8 +8,6 @@ use crate::events::{NegativeTickGrossLiquidity, TickMismatch};
 
 use anchor_lang::prelude::*;
 
-use std::mem;
-
 #[derive(Accounts)]
 #[instruction(tick: u64)]
 pub struct InitializeTick<'info> {
@@ -21,7 +19,7 @@ pub struct InitializeTick<'info> {
 
     #[account(
         init,
-        space = 8 + mem::size_of::<TickState>(),
+        space = 8 + std::mem::size_of::<TickState>(),
         payer = payer,
         seeds = [b"tick", pool_state.key().as_ref(), tick.to_ne_bytes().as_ref()], 
         bump,
