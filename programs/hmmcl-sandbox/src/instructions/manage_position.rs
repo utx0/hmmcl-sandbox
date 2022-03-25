@@ -11,6 +11,8 @@ use crate::events::InsufficientPositionLiquidity;
 
 use anchor_lang::prelude::*;
 
+use std::mem;
+
 #[derive(Accounts)]
 #[instruction(lower_tick: u64, upper_tick: u64)]
 pub struct CreatePosition<'info> {
@@ -23,6 +25,7 @@ pub struct CreatePosition<'info> {
 
     #[account(
         init,
+        space = 8 + mem::size_of::<PositionState>(),
         payer = payer,
         seeds = [
             b"position",

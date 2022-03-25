@@ -6,6 +6,8 @@ use crate::state::pool_state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
+use std::mem;
+
 pub struct Pool;
 impl PoolMath for Pool {}
 
@@ -18,6 +20,7 @@ pub struct InitializePool<'info> {
 
     #[account(
         init,
+        space = 8 + mem::size_of::<PoolState>(),
         payer = payer,
         seeds = [ POOL_STATE_SEED, lp_token_mint.key().as_ref() ],
         bump,
