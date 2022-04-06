@@ -1,5 +1,10 @@
 use crate::constants::{LIQUIDITY_SCALE, ROOT_PRICE_SCALE};
 use crate::state::fees::Fee;
+// use crate::state::tick_bitmap::PoolTickBitmap;
+
+// use crate::state::tick_bitmap::{PoolTickBitmap, TICK_BITMAP_SIZE};
+// use fixedbitset::FixedBitSet;
+// use std::io::Write;
 
 use anchor_lang::prelude::*;
 
@@ -17,6 +22,8 @@ pub struct PoolState {
     pub token_y_vault_bump: u8,
     pub lp_token_vault_bump: u8,
     pub pool_global_state: GlobalState,
+    // pub tick_bitmap: BitMap,
+    // pub tick_bitmap: PoolTickBitmap,
 }
 impl PoolState {}
 
@@ -43,3 +50,31 @@ impl Default for GlobalState {
         }
     }
 }
+
+// #[derive(Debug, Clone)]
+// pub struct BitMap {
+//     pub fixed_bitset: FixedBitSet,
+// }
+
+// impl Default for BitMap {
+//     fn default() -> Self {
+//         Self {
+//             fixed_bitset: FixedBitSet::with_capacity(TICK_BITMAP_SIZE),
+//         }
+//     }
+// }
+
+// impl AnchorSerialize for BitMap {
+//     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+//         writer.write_all(&self.fixed_bitset.as_slice().try_to_vec()?[..])
+//     }
+// }
+
+// impl AnchorDeserialize for BitMap {
+//     fn deserialize(_buf: &mut &[u8]) -> std::io::Result<Self> {
+//         let mut fixed_bitset =
+//             FixedBitSet::with_capacity_and_blocks(TICK_BITMAP_SIZE, _buf.try_to_vec());
+
+//         Ok(Self { fixed_bitset })
+//     }
+// }
