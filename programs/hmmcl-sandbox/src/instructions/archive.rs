@@ -382,3 +382,81 @@
 //     expect(positionStateAccount.liquidity.negative).to.equal(false);
 //   }
 // });
+
+//* ******** Tick bitmap
+
+// #[derive(Debug, Clone)]
+// pub struct BitMap {
+//     pub fixed_bitset: FixedBitSet,
+// }
+
+// impl Default for BitMap {
+//     fn default() -> Self {
+//         Self {
+//             fixed_bitset: FixedBitSet::with_capacity(TICK_BITMAP_SIZE),
+//         }
+//     }
+// }
+
+// impl AnchorSerialize for BitMap {
+//     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+//         writer.write_all(&self.fixed_bitset.as_slice().try_to_vec()?[..])
+//     }
+// }
+
+// impl AnchorDeserialize for BitMap {
+//     fn deserialize(_buf: &mut &[u8]) -> std::io::Result<Self> {
+//         let mut fixed_bitset =
+//             FixedBitSet::with_capacity_and_blocks(TICK_BITMAP_SIZE, _buf.try_to_vec());
+
+//         Ok(Self { fixed_bitset })
+//     }
+// }
+
+// #[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
+// pub struct PoolTickBitmap(Vec<u8>);
+
+// impl AnchorSerialize for PoolTickBitmap {
+//     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+//         self.0.serialize(writer)
+//     }
+// }
+
+// impl AnchorDeserialize for PoolTickBitmap {
+//     fn deserialize(_buf: &mut &[u8]) -> std::io::Result<Self> {
+//         Ok(Self { 0: _buf.to_vec() })
+//     }
+// }
+
+// impl Default for PoolTickBitmap {
+//     fn default() -> Self {
+//         let mut v: Vec<u8> = Vec::with_capacity(TICK_BITMAP_SIZE);
+//         for _i in 0..TICK_BITMAP_SIZE {
+//             v.push(0);
+//         }
+//         PoolTickBitmap { 0: v }
+//     }
+// }
+
+// #[derive(Clone, Debug)]
+// // pub struct PoolTickBitmap([u8; TICK_BITMAP_SIZE]);
+// impl AnchorSerialize for PoolTickBitmap {
+//     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+//         writer.write_all(&self.tick_map)
+//     }
+// }
+
+// impl AnchorDeserialize for PoolTickBitmap {
+//     fn deserialize(_buf: &mut &[u8]) -> std::io::Result<Self> {
+//         Ok(Self {
+//             tick_map: [0u8; TICK_BITMAP_SIZE],
+//         })
+
+//         // Ok(Self(
+//         //     _buf.to_vec()
+//         //         .rsplit_array_ref::<TICK_BITMAP_SIZE>()
+//         //         .1
+//         //         .clone(),
+//         // ))
+//     }
+// }

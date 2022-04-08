@@ -7,6 +7,7 @@ pub mod state;
 
 use instructions::deposit::*;
 use instructions::initialize_pool::*;
+use instructions::manage_bitmap::*;
 use instructions::manage_position::*;
 use instructions::manage_tick::*;
 use instructions::withdraw::*;
@@ -35,6 +36,11 @@ pub mod hmmcl_sandbox {
         tick: u64,
     ) -> Result<()> {
         instructions::initialize_pool::handle(ctx, bootstrap_rp, tick)
+    }
+
+    /// initialize pool's tick bitmap
+    pub fn initialize_bitmap(ctx: Context<InitializeBitmap>) -> Result<()> {
+        instructions::manage_bitmap::initialize_bitmap(ctx)
     }
 
     /// initialize a tick, this is trigerred by SetPosition below, called during deposits when needed

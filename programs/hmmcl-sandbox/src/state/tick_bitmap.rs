@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
-use std::io::Write;
 
-pub const TICK_BITMAP_SIZE: usize = 221_816;
-pub const TICKS_HALFWAY: usize = 110_908;
+pub const TICK_BITMAP_SIZE: usize = 10000; // 221_816;
+pub const TICKS_HALFWAY: usize = 5000; // 110_908;
+
+pub const BITMAP_SPACE: usize = 8 + 1 + 221_816;
 
 // (u128::MAX as f64).log(1.0001f64.sqrt()) is approximately 1774545(.50359)
 // this would be the maximum tick that allowing the root-price to be inbound of u128 (not overflow)
@@ -14,28 +15,18 @@ pub const TICKS_HALFWAY: usize = 110_908;
 // Hence array_size = 221_816 = 1_774_528 / 8. Or 110_908 on each side on tick 0
 // The 1st half of indices will represent negative ticks
 
-#[derive(Clone, Debug)]
-pub struct PoolTickBitmap(Vec<u8>);
-
-impl AnchorSerialize for PoolTickBitmap {
-    fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        self.0.serialize(writer)
-    }
-}
-
-impl AnchorDeserialize for PoolTickBitmap {
-    fn deserialize(_buf: &mut &[u8]) -> std::io::Result<Self> {
-        Ok(Self { 0: _buf.to_vec() })
-    }
+#[account(zero_copy)]
+pub struct PoolTickBitmap {
+    pub tick_map: [u8; TICK_BITMAP_SIZE],
+    pub bump: u8,
 }
 
 impl Default for PoolTickBitmap {
     fn default() -> Self {
-        let mut v: Vec<u8> = Vec::with_capacity(TICK_BITMAP_SIZE);
-        for _i in 0..TICK_BITMAP_SIZE {
-            v.push(0);
+        PoolTickBitmap {
+            tick_map: [0u8; TICK_BITMAP_SIZE],
+            bump: 0,
         }
-        PoolTickBitmap { 0: v }
     }
 }
 
@@ -47,21 +38,21 @@ impl PoolTickBitmap {
         // ix is the particular bit of that byte that represents the tick; ix = tick % 8
         // we add TICK_BITMAP_SIZE (a multiple of 8) to avoid overflow for negative numbers
         let ix = (tick + TICK_BITMAP_SIZE as i32) % 8;
-        self.0[key as usize] = self.0[key as usize] | (1 << ix);
+        self.tick_map[key as usize] = self.tick_map[key as usize] | (1 << ix);
     }
 
     pub fn unset_tick(&mut self, tick: i32) {
         // mark tick as no longer active, when no position references it anymore
         let key = (tick >> 3) + TICKS_HALFWAY as i32;
         let ix = (tick + TICK_BITMAP_SIZE as i32) % 8;
-        self.0[key as usize] = self.0[key as usize] & !(1 << ix);
+        self.tick_map[key as usize] = self.tick_map[key as usize] & !(1 << ix);
     }
 
     pub fn tick_is_active(&self, tick: i32) -> bool {
         // return true if particular is initialized (has some liquidity attached to it)
         let key = (tick >> 3) + TICKS_HALFWAY as i32;
         let ix = (tick + TICK_BITMAP_SIZE as i32) % 8;
-        (self.0[key as usize] >> ix & 1) != 0
+        (self.tick_map[key as usize] >> ix & 1) != 0
     }
 
     pub fn get_next_tick(&self, current_tick: i32, direction: u8) -> Option<i32> {
@@ -78,7 +69,7 @@ impl PoolTickBitmap {
             word_space = 1;
         }
         //current word
-        let cur = self.0[current_key as usize];
+        let cur = self.tick_map[current_key as usize];
         let res = byte_get_next_tick(cur, direction, ix, true);
         if res != None {
             // println!("the byte_get_next_tick ans is {:?}", res);
@@ -91,7 +82,7 @@ impl PoolTickBitmap {
         let mut next_ix = (current_key as i32) + word_space;
         if direction == 0 {
             println!("iter current_word is {}", current_key);
-            iter_word = &self.0[0..(current_key as usize)];
+            iter_word = &self.tick_map[0..(current_key as usize)];
             for &cur in iter_word.iter().rev() {
                 if cur > 0u8 {
                     let res = byte_get_next_tick(cur, direction, ix, false);
@@ -104,7 +95,7 @@ impl PoolTickBitmap {
                 next_ix = next_ix + word_space;
             }
         } else {
-            iter_word = &self.0[(next_ix as usize)..(self.0.len())];
+            iter_word = &self.tick_map[(next_ix as usize)..(self.tick_map.len())];
             for &cur in iter_word {
                 if cur > 0u8 {
                     let res = byte_get_next_tick(cur, direction, ix, false);
@@ -268,33 +259,3 @@ mod test_super {
         println!("max_price_digits :{:?}", max_price_digits);
     }
 }
-
-// #[derive(Clone, Debug)]
-// pub struct PoolTickBitmap([u8; TICK_BITMAP_SIZE]);
-
-// impl AnchorSerialize for PoolTickBitmap {
-//     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
-//         writer.write_all(&self.0)
-//     }
-// }
-
-// impl AnchorDeserialize for PoolTickBitmap {
-//     fn deserialize(_buf: &mut &[u8]) -> std::io::Result<Self> {
-//         // Ok(Self([0u8; TICK_BITMAP_SIZE]))
-//         Ok(Self(
-//             _buf.to_vec()
-//                 .rsplit_array_ref::<TICK_BITMAP_SIZE>()
-//                 .1
-//                 .clone(),
-//         ))
-//     }
-// }
-
-// impl Default for PoolTickBitmap {
-//     fn default() -> Self {
-//         let v: Vec<u8> = Vec::with_capacity(TICK_BITMAP_SIZE);
-//         PoolTickBitmap {
-//             0: [0u8; TICK_BITMAP_SIZE],
-//         }
-//     }
-// }

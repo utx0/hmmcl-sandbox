@@ -36,6 +36,7 @@ describe("hmmcl-sandbox", () => {
   let lpTokenAccount: PublicKey;
 
   let poolState: PublicKey;
+  let tickBitmap: PublicKey;
   let tickStateUpper: PublicKey;
   let tickStateLower: PublicKey;
   let tickStateCurrent: PublicKey;
@@ -45,6 +46,7 @@ describe("hmmcl-sandbox", () => {
   let lpTokenVault: PublicKey;
 
   let poolStateBump: number;
+  let tickBitmapBump: number;
   let tokenXVaultBump: number;
   let tokenYVaultBump: number;
   let lpTokenVaultBump: number;
@@ -54,6 +56,7 @@ describe("hmmcl-sandbox", () => {
   let positionStateBump: number;
 
   let poolStateAccount: any;
+  let tickBitmapAccount: any;
   let tickStateUpperAccount: any;
   let tickStateLowerAccount: any;
   let tickStateCurrentAccount: any;
@@ -91,6 +94,14 @@ describe("hmmcl-sandbox", () => {
       [utf8.encode("pool_state_seed"), lpTokenMint.publicKey.toBuffer()],
       program.programId
     );
+  });
+
+  it("should get the PDA for the TickBitmap", async () => {
+    [tickBitmap, tickBitmapBump] =
+      await anchor.web3.PublicKey.findProgramAddress(
+        [utf8.encode("bitmap"), poolState.toBuffer()],
+        program.programId
+      );
   });
 
   it("should create lpTokenMint with poolState as the authority", async () => {
@@ -210,6 +221,30 @@ describe("hmmcl-sandbox", () => {
     // check globalState rp and tick
     // expect(poolStateAccount.poolGlobalState.rp.value.toNumber()).to.equal(15000);
     // expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(100);
+  });
+
+  it("should initialize pool's tick bitmap ", async () => {
+    try {
+      // console.log(tickBitmap.toString());
+      tickBitmapAccount = await program.account.poolTickBitmap.fetch(
+        tickBitmap
+      );
+      console.log("PRE: tick bitmap found initialized");
+    } catch (error) {
+      console.log("PRE: tick bitmap not found; initializing...");
+      await program.rpc.initializeBitmap({
+        accounts: {
+          poolState: poolState,
+          tickBitmap: tickBitmap,
+          payer: anchor.getProvider().wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+      });
+      tickBitmapAccount = await program.account.poolTickBitmap.fetch(
+        tickBitmap
+      );
+      console.log(tickBitmapAccount.bump);
+    }
   });
 
   it("should get the PDA for the TickStateLower", async () => {
