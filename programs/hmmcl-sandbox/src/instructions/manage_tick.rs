@@ -1,3 +1,5 @@
+use std::ops::Neg;
+
 use crate::constants::{FEE_SCALE, LIQUIDITY_SCALE, POOL_STATE_SEED};
 use crate::decimal::{Add, Decimal};
 use crate::state::pool_state::PoolState;
@@ -67,36 +69,37 @@ pub fn update_tick<'info>(
         return Err(ErrorCode::TickMismatch.into());
     }
 
-    let mut ts_liq_net = Decimal::from_account(
+    let mut ts_liq_net = Decimal::new(
         tick_state.liq_net,
         tick_state.liq_net_scale,
-        tick_state.liq_net_neg,
-    );
+        tick_state.liq_net_neg != 0,
+    )
+    .to_compute_scale();
 
     let applied_net_liquidity = match upper {
         false => liquidity_delta,
-        true => Decimal::flip_sign(liquidity_delta),
+        true => liquidity_delta.neg(),
     };
     ts_liq_net = ts_liq_net.add(applied_net_liquidity).unwrap();
 
-    let (liq_net_val, liq_net_scale, liq_net_neg) = ts_liq_net.to_account();
-    tick_state.liq_net = liq_net_val;
-    tick_state.liq_net_scale = liq_net_scale;
-    tick_state.liq_net_neg = liq_net_neg;
+    tick_state.liq_net = ts_liq_net.value;
+    tick_state.liq_net_scale = ts_liq_net.scale;
+    tick_state.liq_net_neg = if ts_liq_net.negative { 1 } else { 0 };
 
-    let ts_liq_gross = Decimal::from_account(tick_state.liq_gross, tick_state.liq_gross_scale, 0);
+    let ts_liq_gross =
+        Decimal::new(tick_state.liq_gross, tick_state.liq_gross_scale, false).to_compute_scale();
 
     let new_gross_liquidity = ts_liq_gross.add(liquidity_delta).unwrap();
     if new_gross_liquidity.negative {
         emit!(NegativeTickGrossLiquidity {
-            original_liquidity: ts_liq_gross.to_zero_scale_u64(),
-            attempted_removal: liquidity_delta.to_zero_scale_u64(),
+            original_liquidity: ts_liq_gross.abs(),
+            attempted_removal: liquidity_delta.abs(),
         });
         return Err(ErrorCode::NegativeTickGrossLiquidity.into());
     }
-    let (liq_gross_val, liq_gross_scale, _) = new_gross_liquidity.to_account();
-    tick_state.liq_gross = liq_gross_val;
-    tick_state.liq_gross_scale = liq_gross_scale;
+
+    tick_state.liq_gross = new_gross_liquidity.value;
+    tick_state.liq_gross_scale = new_gross_liquidity.scale;
 
     //TODO : unset tick if liq_gross becomes zero
 

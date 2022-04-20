@@ -88,20 +88,20 @@ pub fn update_position<'info>(
 ) -> Result<()> {
     // Update position liquidity
 
-    let ps_liquidity = Decimal::from_account(position_state.liquidity, position_state.liq_scale, 0);
+    let ps_liquidity =
+        Decimal::new(position_state.liquidity, position_state.liq_scale, false).to_compute_scale();
 
     let new_liquidity = ps_liquidity.add(liquidity_delta).unwrap();
     if new_liquidity.negative {
         emit!(InsufficientPositionLiquidity {
-            original_liquidity: ps_liquidity.to_zero_scale_u64(),
-            attempted_removal: liquidity_delta.to_zero_scale_u64(),
+            original_liquidity: ps_liquidity.abs(),
+            attempted_removal: liquidity_delta.abs(),
         });
         return Err(ErrorCode::InsufficientPositionLiquidity.into());
     }
 
-    let (pos_val, pos_scale, _) = new_liquidity.to_account();
-    position_state.liquidity = pos_val;
-    position_state.liq_scale = pos_scale;
+    position_state.liquidity = new_liquidity.value;
+    position_state.liq_scale = new_liquidity.scale;
     position_state.last_collected_fee = new_fee;
 
     // Update liquidity on respective tick_states

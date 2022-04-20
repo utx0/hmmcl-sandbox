@@ -175,8 +175,8 @@ pub fn handle(
     token_x_amount: u64,
     token_y_amount: u64,
 ) -> Result<()> {
-    let x = Decimal::from_u64(token_x_amount).to_computable();
-    let y = Decimal::from_u64(token_y_amount).to_computable();
+    let x = Decimal::from_u64(token_x_amount).to_compute_scale();
+    let y = Decimal::from_u64(token_y_amount).to_compute_scale();
 
     let rpa_used = Pool::tick_to_rp(lower_tick as u128);
     let rpb_used = Pool::tick_to_rp(upper_tick as u128);
@@ -229,21 +229,21 @@ pub fn handle(
 
     // update global state's liquidity if current tick in within position's range
     let global_state = &mut ctx.accounts.pool_state.pool_global_state;
-    let gs_liquidity = Decimal::from_account(global_state.liquidity, global_state.liq_scale, 0);
+    let gs_liquidity = Decimal::new(global_state.liquidity, global_state.liq_scale, false);
 
     if current_tick >= lower_tick && current_tick < upper_tick {
         let new_global_liquidity = gs_liquidity.add(liquidity_delta).unwrap();
         // this check may be redundant but just in case
         if new_global_liquidity.negative {
             emit!(NegativeGlobalLiquidity {
-                original_liquidity: gs_liquidity.to_zero_scale_u64(),
-                attempted_removal: liquidity_delta.to_zero_scale_u64()
+                original_liquidity: gs_liquidity.abs(),
+                attempted_removal: liquidity_delta.abs()
             });
             return Err(ErrorCode::NegativeGlobalLiquidity.into());
         }
-        let (gl_val, gl_scale, _) = new_global_liquidity.to_account();
-        global_state.liquidity = gl_val;
-        global_state.liq_scale = gl_scale;
+
+        global_state.liquidity = new_global_liquidity.value;
+        global_state.liq_scale = new_global_liquidity.scale;
     }
 
     // offset fee amounts from deposit amounts: this will be the amount debited from user
@@ -256,16 +256,16 @@ pub fn handle(
 
     if x_debited.gt(x).unwrap() {
         emit!(DepositAmountExceeded {
-            deposited: x.to_zero_scale_u64(),
-            attempted_debit: x_debited.to_zero_scale_u64(),
+            deposited: x.abs(),
+            attempted_debit: x_debited.abs(),
         });
         return Err(ErrorCode::DepositAmountExceeded.into());
     }
 
     if y_debited.gt(y).unwrap() {
         emit!(DepositAmountExceeded {
-            deposited: y.to_zero_scale_u64(),
-            attempted_debit: y_debited.to_zero_scale_u64(),
+            deposited: y.abs(),
+            attempted_debit: y_debited.abs(),
         });
         return Err(ErrorCode::DepositAmountExceeded.into());
     }
@@ -283,25 +283,25 @@ pub fn handle(
         ctx.accounts
             .mint_lp_tokens_to_user_account()
             .with_signer(&signer),
-        liquidity_delta.to_zero_scale_u64(),
+        liquidity_delta.abs(),
     )?;
 
     // transfer to vault
     token::transfer(
         ctx.accounts.transfer_user_token_x_to_vault(),
-        x_debited.to_zero_scale_u64(),
+        x_debited.abs(),
     )?;
 
     // transfer to vault
     token::transfer(
         ctx.accounts.transfer_user_token_y_to_vault(),
-        y_debited.to_zero_scale_u64(),
+        y_debited.abs(),
     )?;
 
     emit!(LiquidityAdded {
-        tokens_x_transferred: x_debited.to_zero_scale_u64(),
-        tokens_y_transferred: y_debited.to_zero_scale_u64(),
-        lp_tokens_minted: liquidity_delta.to_zero_scale_u64(),
+        tokens_x_transferred: x_debited.abs(),
+        tokens_y_transferred: y_debited.abs(),
+        lp_tokens_minted: liquidity_delta.abs(),
     });
 
     Ok(())

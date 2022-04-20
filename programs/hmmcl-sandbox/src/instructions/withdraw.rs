@@ -1,3 +1,5 @@
+use std::ops::Neg;
+
 use crate::cl_pool::cl_math::PoolMath;
 use crate::constants::*;
 use crate::decimal::*;
@@ -164,8 +166,9 @@ pub fn handle(
 ) -> Result<()> {
     // TODO conversion from lp_tokens to liquidity using mint decimals (and vice-versa)
 
-    let liquidity_delta =
-        Decimal::flip_sign(Decimal::from_u64(liquidity_to_withdraw).to_computable());
+    let liquidity_delta = Decimal::from_u64(liquidity_to_withdraw)
+        .to_compute_scale()
+        .neg();
 
     let rpa_used = Pool::tick_to_rp(lower_tick as u128);
     let rpb_used = Pool::tick_to_rp(upper_tick as u128);
@@ -200,25 +203,25 @@ pub fn handle(
 
     // update global state's liquidity if current tick in within position's range
     let global_state = &mut ctx.accounts.pool_state.pool_global_state;
-    let gs_liquidity = Decimal::from_account(global_state.liquidity, global_state.liq_scale, 0);
+    let gs_liquidity = Decimal::new(global_state.liquidity, global_state.liq_scale, false);
 
     if current_tick >= lower_tick && current_tick < upper_tick {
         let new_global_liquidity = gs_liquidity.add(liquidity_delta).unwrap();
         // this check may be redundant but just in case
         if new_global_liquidity.negative {
             emit!(NegativeGlobalLiquidity {
-                original_liquidity: gs_liquidity.to_zero_scale_u64(),
-                attempted_removal: liquidity_delta.to_zero_scale_u64()
+                original_liquidity: gs_liquidity.abs(),
+                attempted_removal: liquidity_delta.abs()
             });
             return Err(ErrorCode::NegativeGlobalLiquidity.into());
         }
-        let (gl_val, gl_scale, _) = new_global_liquidity.to_account();
-        global_state.liquidity = gl_val;
-        global_state.liq_scale = gl_scale;
+
+        global_state.liquidity = new_global_liquidity.value;
+        global_state.liq_scale = new_global_liquidity.scale;
     }
 
-    let x_out = Pool::x_from_l_rp_rng(liquidity_delta.abs(), rp_used, rpa_used, rpb_used);
-    let y_out = Pool::y_from_l_rp_rng(liquidity_delta.abs(), rp_used, rpa_used, rpb_used);
+    let x_out = Pool::x_from_l_rp_rng(liquidity_delta.neg(), rp_used, rpa_used, rpb_used);
+    let y_out = Pool::y_from_l_rp_rng(liquidity_delta.neg(), rp_used, rpa_used, rpb_used);
 
     // TODO round down amount withdrawn if necessary, as precation
 
@@ -252,7 +255,7 @@ pub fn handle(
         ctx.accounts
             .transfer_vault_token_x_to_user()
             .with_signer(&signer),
-        x_credited.to_zero_scale_u64(),
+        x_credited.abs(),
     )?;
 
     // transfer user_token_b to vault
@@ -260,12 +263,12 @@ pub fn handle(
         ctx.accounts
             .transfer_vault_token_y_to_user()
             .with_signer(&signer),
-        y_credited.to_zero_scale_u64(),
+        y_credited.abs(),
     )?;
 
     emit!(LiquidityRemoved {
-        tokens_x_credited: x_credited.to_zero_scale_u64(),
-        tokens_y_credited: y_credited.to_zero_scale_u64(),
+        tokens_x_credited: x_credited.abs(),
+        tokens_y_credited: y_credited.abs(),
         lp_tokens_burnt: liquidity_to_withdraw,
     });
 

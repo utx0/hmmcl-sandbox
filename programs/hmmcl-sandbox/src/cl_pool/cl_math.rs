@@ -1,3 +1,5 @@
+use std::ops::Neg;
+
 use crate::decimal::*;
 
 pub trait PoolMath {
@@ -5,7 +7,7 @@ pub trait PoolMath {
     // * And all outputs 'computable' scale
     // * All tick are internally handled as u128 and returned as such
     fn tick_base() -> Decimal {
-        Decimal::new(10001_u128, 4_u8, false).to_computable()
+        Decimal::new(10001_u128, 4_u8, false).to_compute_scale()
     }
 
     fn tick_to_rp(tick: u128) -> Decimal {
@@ -18,7 +20,7 @@ pub trait PoolMath {
             true => rp.ln().unwrap().div_up(base.ln().unwrap()),
             false => rp.ln().unwrap().div(base.ln().unwrap()),
         };
-        tick_decimal.to_zero_scale_u128()
+        tick_decimal.to_scale(0).value
     }
 
     fn rp_to_tick_loop(rp: Decimal, left_to_right: bool, start: u128) -> u128 {
@@ -236,12 +238,12 @@ pub trait PoolMath {
         rp_oracle: Decimal,
     ) -> Decimal {
         // chg of reserve x based of chg of price with hmm adj
-        let one = Decimal::from_u64(1).to_computable();
+        let one = Decimal::from_u64(1).to_compute_scale();
         if c.lt(one).unwrap() {
             panic!("cannot handle hmm with C<1");
         }
         if rp_old.eq(rp_new).unwrap() {
-            return Decimal::from_u64(0).to_computable();
+            return Decimal::from_u64(0).to_compute_scale();
         }
         if c.eq(one).unwrap() {
             // return l / rp_oracle * (rp_old / rp_new).ln();
@@ -255,7 +257,7 @@ pub trait PoolMath {
             // let cmo = -omc; // c minus one
             // return l / rp_oracle.powf(c) * (rp_new.powf(cmo) - rp_old.powf(cmo)) / omc;
             let cmo = c.sub(one).unwrap();
-            let omc = Decimal::flip_sign(cmo);
+            let omc = cmo.neg();
             let rp_oracle_pow_c = rp_oracle.pow(c);
             let rp_new_pow_cmo = rp_new.pow(cmo);
             let rp_old_pow_cmo = rp_old.pow(cmo);
@@ -274,12 +276,12 @@ pub trait PoolMath {
         rp_oracle: Decimal,
     ) -> Decimal {
         // chg of reserve y based of chg of price with hmm adj
-        let one = Decimal::from_u64(1).to_computable();
+        let one = Decimal::from_u64(1).to_compute_scale();
         if c.lt(one).unwrap() {
             panic!("cannot handle hmm with C<1");
         }
         if rp_old.eq(rp_new).unwrap() {
-            return Decimal::from_u64(0).to_computable();
+            return Decimal::from_u64(0).to_compute_scale();
         }
         if c.eq(one).unwrap() {
             // l * rp_oracle * (rp_old / rp_new).ln()
@@ -292,7 +294,7 @@ pub trait PoolMath {
             // let omc = 1.0 - c; // one minus c
             // l * rp_oracle.powf(c) * (1.0/rp_new.powf(cmo) - 1.0/ rp_old.powf(cmo)) / omc
             let cmo = c.sub(one).unwrap();
-            let omc = Decimal::flip_sign(cmo);
+            let omc = cmo.neg();
 
             let rp_oracle_pow_c = rp_oracle.pow(c);
             let rp_new_pow_cmo = rp_new.pow(cmo);
@@ -344,8 +346,8 @@ mod test_super {
     #[test]
     fn test_tick_base() {
         // let tb = Pool::tick_base();
-        let a = Decimal::from_u128(1234567).to_amount();
-        let b = Decimal::from_u64(1234567).to_scale(12);
+        let a = Decimal::from_u128(1234567).to_compute_scale();
+        let b = Decimal::from_u64(1234567).to_compute_scale();
 
         // let rez = a.div(b);
         // let rez = Pool::tick_to_rp(76012);
@@ -358,6 +360,5 @@ mod test_super {
         // println!("rez to_u64: {:#?}", rez.to_u64());
         // println!("rez to_amount: {:#?}", rez.to_amount().to_string());
         // println!("rez to_scale 0: {:#?}", rez.to_scale(0).to_string());
-        // println!("rez to_int : {:#?}", rez.to_account_value());
     }
 }
