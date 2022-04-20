@@ -186,11 +186,7 @@ pub fn handle(
     // ? only when no liquidity in range?
 
     let liquidity_delta = Pool::liq_from_x_y_rp_rng(x, y, rp_used, rpa_used, rpb_used);
-    // round down to avoid float rounding vulnerabilities
-    // TODO choose what precision to round down to
-    // if Self::FLOOR_LIQ {
-    //     liq = liq.floor().unwrap()
-    // };
+
     if liquidity_delta.negative {
         // emit!(NegativeDepositLiquidity);
         return Err(ErrorCode::NegativeDepositLiquidity.into());

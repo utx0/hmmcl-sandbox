@@ -104,13 +104,5 @@ pub fn handle(ctx: Context<InitializePool>, _bootstrap_rp: u64, tick: u64) -> Re
         .value;
     global_state.tick = tick;
 
-    // let (rp_val, rp_scale, _) = Pool::tick_to_rp(tick as u128).to_account();
-    // global_state.root_price = rp_val;
-    // global_state.rp_scale = rp_scale;
-
-    // let (zero, liq_scale, _) = Decimal::from_u64(0).to_account();
-    // global_state.liquidity = zero;
-    // global_state.liq_scale = liq_scale;
-
     Ok(())
 }

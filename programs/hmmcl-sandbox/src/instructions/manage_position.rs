@@ -71,9 +71,6 @@ pub fn create_position(
     position_state.liq_scale = LIQUIDITY_SCALE;
     position_state.last_collected_fee.fee_scale = FEE_SCALE;
 
-    // let (zero, scale, _) = Decimal::from_u64(0).to_account();
-    // position_state.liquidity = zero;
-    // position_state.liq_scale = scale;
     Ok(())
 }
 
