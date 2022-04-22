@@ -31,5 +31,7 @@ pub fn initialize_bitmap(ctx: Context<InitializeBitmap>) -> Result<()> {
 
     tick_bitmap.bump = *ctx.bumps.get("tick_bitmap").unwrap();
 
+    // tick_bitmap.activate_tick(0);
+
     Ok(())
 }

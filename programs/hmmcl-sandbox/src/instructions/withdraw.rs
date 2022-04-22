@@ -7,6 +7,7 @@ use crate::instructions::manage_fee::compute_latest_fee;
 use crate::instructions::manage_position::update_position;
 use crate::state::pool_state::PoolState;
 use crate::state::position_state::PositionState;
+use crate::state::tick_bitmap::PoolTickBitmap;
 use crate::state::tick_state::TickState;
 
 use crate::errors::ErrorCode;
@@ -27,7 +28,14 @@ pub struct Withdraw<'info> {
         seeds = [ POOL_STATE_SEED, pool_state.lp_token_mint.as_ref() ],
         bump = pool_state.pool_state_bump,
     )]
-    pub pool_state: Account<'info, PoolState>,
+    pub pool_state: Box<Account<'info, PoolState>>,
+
+    #[account(
+        mut,
+        seeds = [ b"bitmap", pool_state.key().as_ref() ],
+        bump= tick_bitmap.load()?.bump
+    )]
+    pub tick_bitmap: AccountLoader<'info, PoolTickBitmap>,
 
     #[account(
         mut,
@@ -41,7 +49,7 @@ pub struct Withdraw<'info> {
         bump = position_state.bump,
         constraint = lower_tick < upper_tick,
     )]
-    pub position_state: Account<'info, PositionState>,
+    pub position_state: Box<Account<'info, PositionState>>,
 
     #[account(
         mut,
@@ -49,7 +57,7 @@ pub struct Withdraw<'info> {
         bump = lower_tick_state.bump,
         constraint = lower_tick_state.tick == position_state.lower_tick,
     )]
-    pub lower_tick_state: Account<'info, TickState>,
+    pub lower_tick_state: Box<Account<'info, TickState>>,
 
     #[account(
         mut,
@@ -57,7 +65,7 @@ pub struct Withdraw<'info> {
         bump = upper_tick_state.bump,
         constraint = upper_tick_state.tick == position_state.upper_tick,
     )]
-    pub upper_tick_state: Account<'info, TickState>,
+    pub upper_tick_state: Box<Account<'info, TickState>>,
 
     #[account(
         mut,
@@ -66,7 +74,7 @@ pub struct Withdraw<'info> {
         constraint = current_tick_state.tick == current_tick,
         constraint = current_tick_state.tick == pool_state.pool_global_state.tick,
     )]
-    pub current_tick_state: Account<'info, TickState>,
+    pub current_tick_state: Box<Account<'info, TickState>>,
 
     #[account(
         mut,
@@ -200,6 +208,18 @@ pub fn handle(
         new_fee,
     )
     .unwrap();
+
+    // after operation, if lower or upper_tick has 0 gross liquidity then unset tick (from tickmap)
+    if ctx.accounts.lower_tick_state.liq_gross == 0 {
+        msg!("tick map needs updating");
+        let tick_bitmap = &mut ctx.accounts.tick_bitmap.load_mut()?;
+        tick_bitmap.unset_tick(0); // just mock number, to be fixed after 'spacing' implemented
+    }
+    if ctx.accounts.upper_tick_state.liq_gross == 0 {
+        msg!("tick map needs updating");
+        let tick_bitmap = &mut ctx.accounts.tick_bitmap.load_mut()?;
+        tick_bitmap.unset_tick(4000); // just mock number, to be fixed after 'spacing' implemented
+    }
 
     // update global state's liquidity if current tick in within position's range
     let global_state = &mut ctx.accounts.pool_state.pool_global_state;

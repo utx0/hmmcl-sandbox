@@ -62,6 +62,12 @@ describe("hmmcl-sandbox", () => {
   let tickStateCurrentAccount: any;
   let positionStateAccount: any;
 
+  const lowerTick = new BN(71955); // corres rP = sqrt(1333)
+  const upperTick = new BN(80067); // corres rP = sqrt(4000)
+  const currentTick = new BN(76012); // corres rP = sqrt(2000)
+  const x = new BN(2);
+  const y = new BN(4000);
+
   it("should create btcdMint (21 million)", async () => {
     [btcdMint, btcdAccount] = await createMintAndVault(
       provider,
@@ -153,21 +159,7 @@ describe("hmmcl-sandbox", () => {
       );
   });
 
-  const lowerTick = new BN(71955); // corres rP = sqrt(1333)
-  const upperTick = new BN(80067); // corres rP = sqrt(4000)
-  const currentTick = new BN(76012); // corres rP = sqrt(2000)
-  const x = new BN(2);
-  const y = new BN(4000);
-  // const diff = new BN(10000);
-  // const liq3 = new BN(20000);
   it("should initialize a liquidity-pool", async () => {
-    // try {
-    //   poolStateAccount = await program.account.poolState.fetch(poolState);
-    //   console.log("PRE: pool-state found initialized");
-    // } catch (error) {
-    //   console.log("PRE: pool-state not found so not initialized?");
-    // }
-
     await program.rpc.initializePool(new BN(15000), currentTick, {
       accounts: {
         authority: provider.wallet.publicKey,
@@ -186,12 +178,6 @@ describe("hmmcl-sandbox", () => {
     });
 
     poolStateAccount = await program.account.poolState.fetch(poolState);
-    // try {
-    //   poolStateAccount = await program.account.poolState.fetch(poolState);
-    //   console.log("POST: pool-state found initialized");
-    // } catch (error) {
-    //   console.log("POST: pool-state not found so not initialized?");
-    // }
 
     assert.equal(
       poolStateAccount.authority.toString(),
@@ -244,6 +230,8 @@ describe("hmmcl-sandbox", () => {
         tickBitmap
       );
       console.log(tickBitmapAccount.bump);
+      console.log(tickBitmapAccount.tickMap[0]);
+      console.log(tickBitmapAccount.tickMap[5000]);
     }
   });
 
@@ -407,6 +395,7 @@ describe("hmmcl-sandbox", () => {
     await program.rpc.deposit(lowerTick, upperTick, currentTick, x, y, {
       accounts: {
         poolState: poolState,
+        tickBitmap: tickBitmap,
         positionState: positionState,
         lowerTickState: tickStateLower,
         upperTickState: tickStateUpper,
@@ -473,6 +462,7 @@ describe("hmmcl-sandbox", () => {
     //   x.toNumber()
     // );
   });
+
   // let userLiquidity: BN = await getTokenBalance(
   //   anchor.getProvider(),
   //   lpTokenAccount
@@ -494,6 +484,7 @@ describe("hmmcl-sandbox", () => {
       {
         accounts: {
           poolState: poolState,
+          tickBitmap: tickBitmap,
           positionState: positionState,
           lowerTickState: tickStateLower,
           upperTickState: tickStateUpper,

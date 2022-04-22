@@ -5,6 +5,7 @@ use crate::instructions::manage_fee::compute_latest_fee;
 use crate::instructions::manage_position::update_position;
 use crate::state::pool_state::PoolState;
 use crate::state::position_state::PositionState;
+use crate::state::tick_bitmap::PoolTickBitmap;
 use crate::state::tick_state::TickState;
 
 use crate::errors::ErrorCode;
@@ -25,7 +26,14 @@ pub struct Deposit<'info> {
         seeds = [ POOL_STATE_SEED, pool_state.lp_token_mint.as_ref() ],
         bump = pool_state.pool_state_bump,
     )]
-    pub pool_state: Account<'info, PoolState>,
+    pub pool_state: Box<Account<'info, PoolState>>,
+
+    #[account(
+        mut,
+        seeds = [ b"bitmap", pool_state.key().as_ref() ],
+        bump= tick_bitmap.load()?.bump
+    )]
+    pub tick_bitmap: AccountLoader<'info, PoolTickBitmap>,
 
     #[account(
         mut,
@@ -39,7 +47,7 @@ pub struct Deposit<'info> {
         bump = position_state.bump,
         constraint = lower_tick < upper_tick,
     )]
-    pub position_state: Account<'info, PositionState>,
+    pub position_state: Box<Account<'info, PositionState>>,
 
     #[account(
         mut,
@@ -47,7 +55,7 @@ pub struct Deposit<'info> {
         bump = lower_tick_state.bump,
         constraint = lower_tick_state.tick == position_state.lower_tick,
     )]
-    pub lower_tick_state: Account<'info, TickState>,
+    pub lower_tick_state: Box<Account<'info, TickState>>,
 
     #[account(
         mut,
@@ -55,7 +63,7 @@ pub struct Deposit<'info> {
         bump = upper_tick_state.bump,
         constraint = upper_tick_state.tick == position_state.upper_tick,
     )]
-    pub upper_tick_state: Account<'info, TickState>,
+    pub upper_tick_state: Box<Account<'info, TickState>>,
 
     #[account(
         mut,
@@ -64,7 +72,7 @@ pub struct Deposit<'info> {
         constraint = current_tick_state.tick == current_tick,
         constraint = current_tick_state.tick == pool_state.pool_global_state.tick,
     )]
-    pub current_tick_state: Account<'info, TickState>,
+    pub current_tick_state: Box<Account<'info, TickState>>,
 
     #[account(
         mut,
@@ -190,6 +198,18 @@ pub fn handle(
     if liquidity_delta.negative {
         // emit!(NegativeDepositLiquidity);
         return Err(ErrorCode::NegativeDepositLiquidity.into());
+    }
+
+    // BEFORE operation, if tick has no liquidity attached to it ( inactive) then activate in bitmap
+    if ctx.accounts.lower_tick_state.liq_gross == 0 {
+        msg!("tick map needs updating");
+        let tick_bitmap = &mut ctx.accounts.tick_bitmap.load_mut()?;
+        tick_bitmap.activate_tick(0); // just mock numbers, to be fixed after 'spacing' implemented
+    }
+    if ctx.accounts.upper_tick_state.liq_gross == 0 {
+        msg!("tick map needs updating");
+        let tick_bitmap = &mut ctx.accounts.tick_bitmap.load_mut()?;
+        tick_bitmap.activate_tick(4000); // just mock numbers, to be fixed after 'spacing' implemented
     }
 
     let x_in = Pool::x_from_l_rp_rng(liquidity_delta, rp_used, rpa_used, rpb_used);
