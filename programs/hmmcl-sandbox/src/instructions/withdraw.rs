@@ -210,12 +210,12 @@ pub fn handle(
     .unwrap();
 
     // after operation, if lower or upper_tick has 0 gross liquidity then unset tick (from tickmap)
-    if ctx.accounts.lower_tick_state.liq_gross == 0 {
+    if true || ctx.accounts.lower_tick_state.liq_gross == 0 {
         msg!("tick map needs updating");
         let tick_bitmap = &mut ctx.accounts.tick_bitmap.load_mut()?;
         tick_bitmap.unset_tick(0); // just mock number, to be fixed after 'spacing' implemented
     }
-    if ctx.accounts.upper_tick_state.liq_gross == 0 {
+    if true || ctx.accounts.upper_tick_state.liq_gross == 0 {
         msg!("tick map needs updating");
         let tick_bitmap = &mut ctx.accounts.tick_bitmap.load_mut()?;
         tick_bitmap.unset_tick(4000); // just mock number, to be fixed after 'spacing' implemented

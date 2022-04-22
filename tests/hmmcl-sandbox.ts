@@ -205,13 +205,24 @@ describe("hmmcl-sandbox", () => {
     assert.equal(poolStateAccount.tokenYVaultBump, tokenYVaultBump);
 
     // check globalState rp and tick
-    // expect(poolStateAccount.poolGlobalState.rp.value.toNumber()).to.equal(15000);
-    // expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(100);
+    expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(
+      currentTick.toNumber()
+    );
+    expect(poolStateAccount.poolGlobalState.rootPrice.toNumber()).to.equal(
+      44719511943267
+    );
+    expect(poolStateAccount.poolGlobalState.rpScale).to.equal(12);
+    expect(poolStateAccount.poolGlobalState.liquidity.toNumber()).to.equal(0);
+    expect(poolStateAccount.poolGlobalState.liqScale).to.equal(12);
+
+    expect(poolStateAccount.poolGlobalState.globalFee.fX.toNumber()).to.equal(
+      0
+    );
+    expect(poolStateAccount.poolGlobalState.globalFee.feeScale).to.equal(12);
   });
 
   it("should initialize pool's tick bitmap ", async () => {
     try {
-      // console.log(tickBitmap.toString());
       tickBitmapAccount = await program.account.poolTickBitmap.fetch(
         tickBitmap
       );
@@ -229,9 +240,12 @@ describe("hmmcl-sandbox", () => {
       tickBitmapAccount = await program.account.poolTickBitmap.fetch(
         tickBitmap
       );
-      console.log(tickBitmapAccount.bump);
-      console.log(tickBitmapAccount.tickMap[0]);
-      console.log(tickBitmapAccount.tickMap[5000]);
+      console.log("bitmap at 0: %d", tickBitmapAccount.tickMap[0]);
+      console.log("bitmap at 4000: %d", tickBitmapAccount.tickMap[500]); // 4000 / 8
+
+      expect(tickBitmapAccount.bump).to.equal(tickBitmapBump);
+      expect(tickBitmapAccount.tickMap[0]).to.equal(0);
+      expect(tickBitmapAccount.tickMap[500]).to.equal(0); // 4000 / 8
     }
   });
 
@@ -276,11 +290,15 @@ describe("hmmcl-sandbox", () => {
       tickStateLowerAccount = await program.account.tickState.fetch(
         tickStateLower
       );
-      // console.log(tickStateLowerAccount);
       expect(tickStateLowerAccount.tick.toNumber()).to.equal(
         lowerTick.toNumber()
       );
+      expect(tickStateLowerAccount.liqNet.toNumber()).to.equal(0);
       expect(tickStateLowerAccount.liqNetScale).to.equal(12);
+      expect(tickStateLowerAccount.liqGross.toNumber()).to.equal(0);
+      expect(tickStateLowerAccount.liqGrossScale).to.equal(12);
+      expect(tickStateLowerAccount.tickFee.fX.toNumber()).to.equal(0);
+      expect(tickStateLowerAccount.tickFee.feeScale).to.equal(12);
     }
 
     try {
@@ -301,11 +319,10 @@ describe("hmmcl-sandbox", () => {
       tickStateUpperAccount = await program.account.tickState.fetch(
         tickStateUpper
       );
-      // console.log(tickStateUpperAccount);
+
       expect(tickStateUpperAccount.tick.toNumber()).to.equal(
         upperTick.toNumber()
       );
-      expect(tickStateUpperAccount.liqGrossScale).to.equal(12);
     }
   });
 
@@ -328,7 +345,7 @@ describe("hmmcl-sandbox", () => {
       tickStateCurrentAccount = await program.account.tickState.fetch(
         tickStateCurrent
       );
-      // console.log(tickStateCurrentAccount);
+
       expect(tickStateCurrentAccount.tick.toNumber()).to.equal(
         currentTick.toNumber()
       );
@@ -372,14 +389,16 @@ describe("hmmcl-sandbox", () => {
       positionStateAccount = await program.account.positionState.fetch(
         positionState
       );
-      // console.log(positionStateAccount);
+
       expect(positionStateAccount.lowerTick.toNumber()).to.equal(
         lowerTick.toNumber()
       );
       expect(positionStateAccount.upperTick.toNumber()).to.equal(
         upperTick.toNumber()
       );
+      expect(positionStateAccount.liquidity.toNumber()).to.equal(0);
       expect(positionStateAccount.liqScale).to.equal(12);
+      expect(positionStateAccount.lastCollectedFee.fX.toNumber()).to.equal(0);
       expect(positionStateAccount.lastCollectedFee.feeScale).to.equal(12);
     }
   });
@@ -426,41 +445,36 @@ describe("hmmcl-sandbox", () => {
     tickStateCurrentAccount = await program.account.tickState.fetch(
       tickStateCurrent
     );
+    tickBitmapAccount = await program.account.poolTickBitmap.fetch(tickBitmap);
 
-    console.log(
-      "pool tick: ",
-      poolStateAccount.poolGlobalState.tick.toNumber()
+    expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(
+      currentTick.toNumber()
     );
-    console.log(
-      "pool rp: ",
-      poolStateAccount.poolGlobalState.rootPrice.toNumber()
+    expect(poolStateAccount.poolGlobalState.rootPrice.toNumber()).to.equal(
+      44719511943267
     );
-    console.log(
-      "pool liq: ",
-      poolStateAccount.poolGlobalState.liquidity.toNumber()
+    expect(poolStateAccount.poolGlobalState.liquidity.toNumber()).to.equal(
+      487204723244326
     );
+    expect(positionStateAccount.liquidity.toNumber()).to.equal(487204723244326);
 
-    console.log("position liq: ", positionStateAccount.liquidity.toNumber());
-    console.log("position lower: ", positionStateAccount.lowerTick.toNumber());
-    console.log("position upper: ", positionStateAccount.upperTick.toNumber());
+    expect(tickStateLowerAccount.liqNet.toNumber()).to.equal(487204723244326);
+    expect(tickStateLowerAccount.liqNetNeg).to.equal(0);
+    expect(tickStateLowerAccount.liqGross.toNumber()).to.equal(487204723244326);
 
-    console.log("lower net", tickStateLowerAccount.liqNet.toNumber());
-    console.log("lower net neg", tickStateLowerAccount.liqNetNeg.toString());
-    console.log("lower gross", tickStateLowerAccount.liqGross.toNumber());
-    console.log("upper net", tickStateUpperAccount.liqNet.toNumber());
-    console.log("upper net neg", tickStateUpperAccount.liqNetNeg.toString());
-    console.log("upper gross", tickStateUpperAccount.liqGross.toNumber());
-    console.log("current net", tickStateCurrentAccount.liqNet.toNumber());
-    console.log(
-      "current net neg",
-      tickStateCurrentAccount.liqNetNeg.toString()
-    );
-    console.log("current gross", tickStateCurrentAccount.liqGross.toNumber());
+    expect(tickStateUpperAccount.liqNet.toNumber()).to.equal(487204723244326);
+    expect(tickStateUpperAccount.liqNetNeg).to.equal(1);
+    expect(tickStateUpperAccount.liqGross.toNumber()).to.equal(487204723244326);
 
-    // expect(positionStateAccount.liquidity.negative).to.equal(false);
-    // expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
-    //   x.toNumber()
-    // );
+    expect(tickStateCurrentAccount.liqNet.toNumber()).to.equal(0);
+    expect(tickStateCurrentAccount.liqNetNeg).to.equal(0);
+    expect(tickStateCurrentAccount.liqGross.toNumber()).to.equal(0);
+
+    console.log("bitmap at 0: %d", tickBitmapAccount.tickMap[0]);
+    console.log("bitmap at 4000: %d", tickBitmapAccount.tickMap[500]); //4000/8
+
+    expect(tickBitmapAccount.tickMap[0]).to.equal(1);
+    expect(tickBitmapAccount.tickMap[500]).to.equal(1); // 4000/8
   });
 
   // let userLiquidity: BN = await getTokenBalance(
@@ -516,40 +530,35 @@ describe("hmmcl-sandbox", () => {
     tickStateCurrentAccount = await program.account.tickState.fetch(
       tickStateCurrent
     );
+    tickBitmapAccount = await program.account.poolTickBitmap.fetch(tickBitmap);
 
-    console.log(
-      "pool tick: ",
-      poolStateAccount.poolGlobalState.tick.toNumber()
+    expect(poolStateAccount.poolGlobalState.tick.toNumber()).to.equal(
+      currentTick.toNumber()
     );
-    console.log(
-      "pool rp: ",
-      poolStateAccount.poolGlobalState.rootPrice.toNumber()
+    expect(poolStateAccount.poolGlobalState.rootPrice.toNumber()).to.equal(
+      44719511943267
     );
-    console.log(
-      "pool liq: ",
-      poolStateAccount.poolGlobalState.liquidity.toNumber()
+    expect(poolStateAccount.poolGlobalState.liquidity.toNumber()).to.equal(
+      87204723244326
     );
+    expect(positionStateAccount.liquidity.toNumber()).to.equal(87204723244326);
 
-    console.log("position liq: ", positionStateAccount.liquidity.toNumber());
-    console.log("position lower: ", positionStateAccount.lowerTick.toNumber());
-    console.log("position upper: ", positionStateAccount.upperTick.toNumber());
+    expect(tickStateLowerAccount.liqNet.toNumber()).to.equal(87204723244326);
+    expect(tickStateLowerAccount.liqNetNeg).to.equal(0);
+    expect(tickStateLowerAccount.liqGross.toNumber()).to.equal(87204723244326);
 
-    console.log("lower net", tickStateLowerAccount.liqNet.toNumber());
-    console.log("lower net neg", tickStateLowerAccount.liqNetNeg.toString());
-    console.log("lower gross", tickStateLowerAccount.liqGross.toNumber());
-    console.log("upper net", tickStateUpperAccount.liqNet.toNumber());
-    console.log("upper net neg", tickStateUpperAccount.liqNetNeg.toString());
-    console.log("upper gross", tickStateUpperAccount.liqGross.toNumber());
-    console.log("current net", tickStateCurrentAccount.liqNet.toNumber());
-    console.log(
-      "current net neg",
-      tickStateCurrentAccount.liqNetNeg.toString()
-    );
-    console.log("current gross", tickStateCurrentAccount.liqGross.toNumber());
+    expect(tickStateUpperAccount.liqNet.toNumber()).to.equal(87204723244326);
+    expect(tickStateUpperAccount.liqNetNeg).to.equal(1);
+    expect(tickStateUpperAccount.liqGross.toNumber()).to.equal(87204723244326);
 
-    // expect(positionStateAccount.liquidity.negative).to.equal(false);
-    // expect(positionStateAccount.liquidity.value.toNumber()).to.equal(
-    //   x.toNumber()
-    // );
+    expect(tickStateCurrentAccount.liqNet.toNumber()).to.equal(0);
+    expect(tickStateCurrentAccount.liqNetNeg).to.equal(0);
+    expect(tickStateCurrentAccount.liqGross.toNumber()).to.equal(0);
+
+    console.log("bitmap at 0: %d", tickBitmapAccount.tickMap[0]);
+    console.log("bitmap at 4000: %d", tickBitmapAccount.tickMap[500]); //4000/8
+
+    expect(tickBitmapAccount.tickMap[0]).to.equal(0);
+    expect(tickBitmapAccount.tickMap[500]).to.equal(0); // 4000/8
   });
 });

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 pub const TICK_BITMAP_SIZE: usize = 10000; // 221_816;
-pub const TICKS_HALFWAY: usize = 5000; // 110_908;
+pub const TICKS_OFFSET: usize = 0; // 110_908;
 
 pub const BITMAP_SPACE: usize = 8 + 1 + 221_816;
 
@@ -34,7 +34,7 @@ impl PoolTickBitmap {
     pub fn activate_tick(&mut self, tick: i32) {
         // mark tick as initialized
         // key is the byte (u8 element of array) where the tick is stored
-        let key = (tick >> 3) + TICKS_HALFWAY as i32;
+        let key = (tick >> 3) + TICKS_OFFSET as i32;
         // ix is the particular bit of that byte that represents the tick; ix = tick % 8
         // we add TICK_BITMAP_SIZE (a multiple of 8) to avoid overflow for negative numbers
         let ix = (tick + TICK_BITMAP_SIZE as i32) % 8;
@@ -43,20 +43,20 @@ impl PoolTickBitmap {
 
     pub fn unset_tick(&mut self, tick: i32) {
         // mark tick as no longer active, when no position references it anymore
-        let key = (tick >> 3) + TICKS_HALFWAY as i32;
+        let key = (tick >> 3) + TICKS_OFFSET as i32;
         let ix = (tick + TICK_BITMAP_SIZE as i32) % 8;
         self.tick_map[key as usize] = self.tick_map[key as usize] & !(1 << ix);
     }
 
     pub fn tick_is_active(&self, tick: i32) -> bool {
         // return true if particular is initialized (has some liquidity attached to it)
-        let key = (tick >> 3) + TICKS_HALFWAY as i32;
+        let key = (tick >> 3) + TICKS_OFFSET as i32;
         let ix = (tick + TICK_BITMAP_SIZE as i32) % 8;
         (self.tick_map[key as usize] >> ix & 1) != 0
     }
 
     pub fn get_next_tick(&self, current_tick: i32, direction: u8) -> Option<i32> {
-        let current_key = (current_tick >> 3) + TICKS_HALFWAY as i32;
+        let current_key = (current_tick >> 3) + TICKS_OFFSET as i32;
         let ix = ((current_tick + TICK_BITMAP_SIZE as i32) % 8) as u8;
         println!(
             "the current word is {} and the th {}, current_tick {}",
@@ -73,7 +73,7 @@ impl PoolTickBitmap {
         let res = byte_get_next_tick(cur, direction, ix, true);
         if res != None {
             // println!("the byte_get_next_tick ans is {:?}", res);
-            let ans = ((current_key - TICKS_HALFWAY as i32) << 3) + (res.unwrap() as i32);
+            let ans = ((current_key - TICKS_OFFSET as i32) << 3) + (res.unwrap() as i32);
             return Some(ans);
         }
         // next word
@@ -88,7 +88,7 @@ impl PoolTickBitmap {
                     let res = byte_get_next_tick(cur, direction, ix, false);
                     if res != None {
                         // println!("the next th is {} and the res is {}", next_ix, res.unwrap());
-                        let ans = ((next_ix - TICKS_HALFWAY as i32) << 3) + (res.unwrap() as i32);
+                        let ans = ((next_ix - TICKS_OFFSET as i32) << 3) + (res.unwrap() as i32);
                         return Some(ans);
                     }
                 }
@@ -101,7 +101,7 @@ impl PoolTickBitmap {
                     let res = byte_get_next_tick(cur, direction, ix, false);
                     if res != None {
                         // println!("the next th is {} and the res is {}", next_ix, res.unwrap());
-                        let ans = ((next_ix - TICKS_HALFWAY as i32) << 3) + (res.unwrap() as i32);
+                        let ans = ((next_ix - TICKS_OFFSET as i32) << 3) + (res.unwrap() as i32);
                         return Some(ans);
                     }
                 }
