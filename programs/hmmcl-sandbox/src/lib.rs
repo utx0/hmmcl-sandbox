@@ -1,4 +1,5 @@
 pub mod cl_pool;
+pub mod cl_pool_float;
 pub mod decimal;
 pub mod errors;
 pub mod events;
