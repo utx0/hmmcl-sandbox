@@ -209,7 +209,7 @@ pub fn handle(
     if ctx.accounts.upper_tick_state.liq_gross == 0 {
         msg!("tick map needs updating");
         let tick_bitmap = &mut ctx.accounts.tick_bitmap.load_mut()?;
-        tick_bitmap.activate_tick(4000); // just mock numbers, to be fixed after 'spacing' implemented
+        tick_bitmap.activate_tick(40000); // just mock numbers, to be fixed after 'spacing' implemented
     }
 
     let x_in = Pool::x_from_l_rp_rng(liquidity_delta, rp_used, rpa_used, rpb_used);

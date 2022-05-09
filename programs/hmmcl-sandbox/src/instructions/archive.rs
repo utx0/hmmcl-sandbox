@@ -363,3 +363,67 @@
 //         // ))
 //     }
 // }
+
+//** other
+// use anchor_lang::solana_program::log::sol_log_compute_units;
+// use anchor_lang::solana_program::sysvar;
+
+// let now = sysvar::clock::Clock::get().unwrap().unix_timestamp as u64;
+// msg!("Now = {:?}", now);
+// sol_log_compute_units();
+
+// let mut ticks = bitvec![u64, Lsb0; 0; 100_000];
+
+// // set some ticks as active
+// ticks.set(69, true);
+// ticks.set(420, true);
+
+// // get a particular tick index value
+// assert_eq!(*ticks.get_mut(69).unwrap(), true);
+// assert_eq!(*ticks.get_mut(420).unwrap(), true);
+// assert_eq!(*ticks.get_mut(42069).unwrap(), false);
+// assert_eq!(ticks.is_empty(), false);
+
+// let mut iter = ticks.iter();
+
+// // grab ticks automatically (we'd wrap this in a function much like get_next_tick)
+// let next_tick = iter.position(|tick| tick == true).unwrap();
+// assert_eq!(next_tick, 69);
+// let last_tick = next_tick;
+// let next_tick = iter.position(|tick| tick == true).unwrap();
+// assert_eq!(next_tick + last_tick + 1, 420);
+
+// // iterate over all the ticks left to right
+// for (i, tick) in enumerate(&ticks) {
+//     if *tick {
+//         println!("tick {} is active", i);
+//     }
+// }
+
+// // iterate over all the ticks right to left
+// for (i, tick) in enumerate(&ticks).rev() {
+//     if *tick {
+//         println!("tick {} is active", i);
+//     }
+// }
+
+// sol_log_compute_units();
+// let mut ticks_big = bitvec![u8, Lsb0; 0; 250_000];
+// sol_log_compute_units();
+// Ok(())
+
+// pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+//     // recreate from an array of bits
+//     let bits = bits![0, 1, 0, 0, 1];
+//     let mut ticks = BitVec::from_bitslice(bits);
+
+//     // set some ticks as active
+//     ticks.set(0, true);
+//     ticks.set(1, false);
+
+//     // grab a tick
+//     let tick = *ticks.get_mut(1).unwrap();
+//     msg!("tick is false {:?}", tick);
+
+//     Ok(())
+// }

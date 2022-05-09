@@ -471,10 +471,10 @@ describe("hmmcl-sandbox", () => {
     expect(tickStateCurrentAccount.liqGross.toNumber()).to.equal(0);
 
     console.log("bitmap at 0: %d", tickBitmapAccount.tickMap[0]);
-    console.log("bitmap at 4000: %d", tickBitmapAccount.tickMap[500]); //4000/8
+    console.log("bitmap at 40000: %d", tickBitmapAccount.tickMap[5000]); //40000/8
 
     expect(tickBitmapAccount.tickMap[0]).to.equal(1);
-    expect(tickBitmapAccount.tickMap[500]).to.equal(1); // 4000/8
+    expect(tickBitmapAccount.tickMap[5000]).to.equal(1); // 40000/8
   });
 
   // let userLiquidity: BN = await getTokenBalance(
@@ -556,9 +556,9 @@ describe("hmmcl-sandbox", () => {
     expect(tickStateCurrentAccount.liqGross.toNumber()).to.equal(0);
 
     console.log("bitmap at 0: %d", tickBitmapAccount.tickMap[0]);
-    console.log("bitmap at 4000: %d", tickBitmapAccount.tickMap[500]); //4000/8
+    console.log("bitmap at 40000: %d", tickBitmapAccount.tickMap[5000]); //40000/8
 
     expect(tickBitmapAccount.tickMap[0]).to.equal(0);
-    expect(tickBitmapAccount.tickMap[500]).to.equal(0); // 4000/8
+    expect(tickBitmapAccount.tickMap[5000]).to.equal(0); // 40000/8
   });
 });

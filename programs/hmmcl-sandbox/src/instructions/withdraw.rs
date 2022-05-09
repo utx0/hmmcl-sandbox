@@ -218,7 +218,7 @@ pub fn handle(
     if true || ctx.accounts.upper_tick_state.liq_gross == 0 {
         msg!("tick map needs updating");
         let tick_bitmap = &mut ctx.accounts.tick_bitmap.load_mut()?;
-        tick_bitmap.unset_tick(4000); // just mock number, to be fixed after 'spacing' implemented
+        tick_bitmap.unset_tick(40000); // just mock number, to be fixed after 'spacing' implemented
     }
 
     // update global state's liquidity if current tick in within position's range
